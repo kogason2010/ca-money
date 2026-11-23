@@ -1,0 +1,103 @@
+name: Update data
+
+# Runs once a month, on demand (Actions tab → "Update data" → Run workflow),
+# and whenever the pipeline scripts change.
+on:
+  schedule:
+    - cron: "41 19 9 * *" # 9th of every month, 19:41 UTC
+  workflow_dispatch:
+    inputs:
+      full_rebuild:
+        description: "Re-read every fiscal year of state data (slow, ~110 GB of CSV)"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - "scripts/**"
+      - ".github/workflows/update-data.yml"
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      years: ${{ steps.plan.outputs.years }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run offline tests
+        run: python -m unittest discover tests
+      - name: Decide which state fiscal years to read
+        id: plan
+        run: python scripts/state_pipeline.py plan ${{ inputs.full_rebuild && '--full' || '' }} >> "$GITHUB_OUTPUT"
+
+  state:
+    needs: plan
+    if: needs.plan.outputs.years != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        year: ${{ fromJSON(needs.plan.outputs.years) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Stream Open FI$Cal files for ${{ matrix.year }}
+        run: python scripts/state_pipeline.py fetch --year ${{ matrix.year }} --out out/state
+      - uses: actions/upload-artifact@v4
+        with:
+          name: state-${{ matrix.year }}
+          path: out/state
+          retention-days: 7
+
+  publish:
+    needs: [plan, state]
+    # Publish whatever succeeded, even if one fiscal year failed.
+    if: ${{ always() && needs.plan.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: state-*
+          path: out/state
+          merge-multiple: true
+      - name: Update state summaries
+        run: python scripts/state_pipeline.py index --incoming out/state
+      - name: Update city and county data
+        run: python scripts/local_pipeline.py all
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if git diff --cached --quiet; then
+            echo "No data changes."
+            exit 0
+          fi
+          git commit -m "Update data ($(date -u +%Y-%m-%d))"
+          git pull --rebase origin main
+          git push origin HEAD:main
+      - name: Ask GitHub Pages to rebuild
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X POST "repos/${{ github.repository }}/pages/builds" || true

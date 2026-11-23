@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Where California's money goes</title>
+  <meta name="description" content="Follow California state spending from funds to agencies to departments, and compare what your city or county spends per resident.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="fonts/public-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Apply a saved theme before first paint (no flash).
+    try { const t = localStorage.getItem("ca-money-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="topbar">
+    <a class="brand" href="#view=state" aria-label="Where California's money goes, home">
+      <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M4 9c6 0 7 7 12 7s6-7 12-7M4 16c6 0 7 7 12 7s6-7 12-7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+      <span>CA Money</span>
+    </a>
+    <nav class="tabs" aria-label="Views">
+      <a href="#view=state" data-view="state">State spending</a>
+      <a href="#view=local" data-view="local">Cities &amp; counties</a>
+    </nav>
+    <button class="theme-toggle" type="button" aria-label="Switch color theme" title="Switch color theme">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z" fill="currentColor"/></svg>
+    </button>
+  </header>
+
+  <main id="main">
+    <!-- ======================= STATE VIEW ======================= -->
+    <section id="state-view" class="view" hidden>
+      <div class="lede">
+        <h1 id="state-headline">Where California's money goes</h1>
+        <p class="sub" id="state-sub">Follow state spending from the funds that paid for it to the agencies and departments that spent it.</p>
+      </div>
+
+      <div class="filters" role="group" aria-label="State spending filters">
+        <label class="field">
+          <span>Fiscal year</span>
+          <select id="state-year"></select>
+        </label>
+        <nav class="crumbs" id="state-crumbs" aria-label="Zoom level"></nav>
+        <button type="button" class="ghost" id="state-table-toggle" aria-pressed="false">Show as table</button>
+      </div>
+
+      <p class="notice" id="state-notice" hidden></p>
+
+      <div class="chart-frame" id="sankey-frame">
+        <div class="legend" id="fund-legend" aria-label="Fund groups"></div>
+        <div class="scroll-x">
+          <svg id="sankey" role="img" aria-labelledby="state-headline"></svg>
+        </div>
+        <p class="hint">Click or press Enter on a fund, agency or department to zoom in. Hover for amounts.</p>
+        <div class="table-wrap" id="state-table" hidden></div>
+      </div>
+
+      <div class="below" id="state-below"></div>
+
+      <details class="about">
+        <summary>About these numbers</summary>
+        <ul id="state-about">
+          <li>The source is <a href="https://open.fiscal.ca.gov/download-expenditures.html">Open FI$Cal</a>, the state's financial transparency site. It publishes every expenditure transaction from the FI$Cal accounting system, one file per month.</li>
+          <li>Open FI$Cal covers about 79% of the state's budgetary expenditures (151 departments, 188 business units). Spending by departments outside FI$Cal is not shown.</li>
+          <li>Data is published with a lag of at least 60 days, and adjustments can still be posted to a month after it ends, so the newest months may change.</li>
+          <li>Amounts are net: refunds, reversals and internal cost recovery (costs charged back to other programs) reduce the totals. Where a fund's net amount for a department is negative it is left out of the drawing; the amount left out is listed under the chart.</li>
+          <li>Names of funds, agencies and departments are shown as Open FI$Cal abbreviates them, with a few abbreviations spelled out.</li>
+        </ul>
+      </details>
+    </section>
+
+    <!-- ======================= LOCAL VIEW ======================= -->
+    <section id="local-view" class="view" hidden>
+      <div class="lede">
+        <h1 id="local-headline">What does your city spend per resident?</h1>
+        <p class="sub" id="local-sub">Pick a city or county to see its spending on everyday services, and how that compares with its neighbors.</p>
+      </div>
+
+      <div class="filters" role="group" aria-label="City and county filters">
+        <div class="seg" role="radiogroup" aria-label="Cities or counties" id="kind-seg">
+          <button type="button" role="radio" data-kind="cities" aria-checked="true">Cities</button>
+          <button type="button" role="radio" data-kind="counties" aria-checked="false">Counties</button>
+        </div>
+        <label class="field grow">
+          <span id="entity-label">City</span>
+          <input id="entity-input" list="entity-list" autocomplete="off" spellcheck="false" placeholder="Type a name">
+          <datalist id="entity-list"></datalist>
+        </label>
+        <label class="field">
+          <span>Fiscal year</span>
+          <select id="local-year"></select>
+        </label>
+        <label class="field">
+          <span>Compare with</span>
+          <select id="compare-set"></select>
+        </label>
+      </div>
+
+      <div class="local-grid">
+        <div class="panel profile">
+          <h2 id="profile-title">Spending per resident</h2>
+          <p class="panel-sub" id="profile-sub"></p>
+          <div id="profile-chart"></div>
+        </div>
+        <div class="panel map">
+          <h2 id="map-title">Map</h2>
+          <p class="panel-sub" id="map-sub"></p>
+          <div id="map-chart"></div>
+          <div class="ramp" id="map-legend"></div>
+        </div>
+        <div class="panel rank">
+          <h2 id="rank-title">Compared with neighbors</h2>
+          <p class="panel-sub" id="rank-sub"></p>
+          <div id="rank-chart"></div>
+        </div>
+        <div class="panel lines">
+          <h2 id="lines-title">What's in each total</h2>
+          <p class="panel-sub" id="lines-sub"></p>
+          <div id="lines-table"></div>
+        </div>
+      </div>
+
+      <details class="about">
+        <summary>About these numbers</summary>
+        <ul id="local-about">
+          <li>The source is the State Controller's Office <a href="https://bythenumbers.sco.ca.gov/">By the Numbers</a> site, which publishes each city's and county's annual Financial Transactions Report. Figures are posted as each local government submitted them; the State Controller's Office does not vouch for their accuracy.</li>
+          <li>Totals here are day-to-day spending on services from governmental funds ("current expenditures"). They leave out city-run businesses such as water, electric, airport and hospital enterprise funds. Capital projects and debt payments are shown separately.</li>
+          <li>Who provides a service varies. A city with little or no fire, library or sewer spending may be served by a county department or a special district, which report separately. Many cities also contract with their county sheriff for police.</li>
+          <li>Per-resident amounts divide spending by the population estimate in the same report. In cities with very few residents (and large businesses) per-resident figures can be extreme.</li>
+          <li>Each service area adds up specific report lines; "What's in each total" lists them for the selected place.</li>
+        </ul>
+      </details>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p id="foot-sources">Data: Open FI$Cal (California Department of FI$Cal) and By the Numbers (California State Controller's Office). Updated monthly by an automated job.</p>
+    <p><a href="https://github.com/kogason2010/ca-money">Source code and data on GitHub</a></p>
+  </footer>
+
+  <div class="tooltip" id="tooltip" role="status" aria-live="polite" hidden></div>
+
+  <script src="vendor/d3.min.js"></script>
+  <script src="vendor/d3-sankey.min.js"></script>
+  <script src="vendor/topojson-client.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

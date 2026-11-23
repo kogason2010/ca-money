@@ -1,0 +1,101 @@
+{
+ "schema": 1,
+ "generatedAt": "2026-11-23T06:35:18Z",
+ "default": "2024-25",
+ "years": [
+  {
+   "fiscalYear": "2025-26",
+   "beginYear": 2025,
+   "file": "fy2025-26.json",
+   "complete": false,
+   "through": "May 2026",
+   "net": 443142128220,
+   "departments": 180
+  },
+  {
+   "fiscalYear": "2024-25",
+   "beginYear": 2024,
+   "file": "fy2024-25.json",
+   "complete": true,
+   "through": "June 2025",
+   "net": 472370401802,
+   "departments": 179
+  },
+  {
+   "fiscalYear": "2023-24",
+   "beginYear": 2023,
+   "file": "fy2023-24.json",
+   "complete": true,
+   "through": "June 2024",
+   "net": 441451387787,
+   "departments": 178
+  },
+  {
+   "fiscalYear": "2022-23",
+   "beginYear": 2022,
+   "file": "fy2022-23.json",
+   "complete": true,
+   "through": "June 2023",
+   "net": 394755305169,
+   "departments": 180
+  },
+  {
+   "fiscalYear": "2021-22",
+   "beginYear": 2021,
+   "file": "fy2021-22.json",
+   "complete": true,
+   "through": "June 2022",
+   "net": 393631637906,
+   "departments": 180
+  },
+  {
+   "fiscalYear": "2020-21",
+   "beginYear": 2020,
+   "file": "fy2020-21.json",
+   "complete": true,
+   "through": "June 2021",
+   "net": 490748928244,
+   "departments": 179
+  },
+  {
+   "fiscalYear": "2019-20",
+   "beginYear": 2019,
+   "file": "fy2019-20.json",
+   "complete": true,
+   "through": "June 2020",
+   "net": 315228035045,
+   "departments": 147
+  },
+  {
+   "fiscalYear": "2018-19",
+   "beginYear": 2018,
+   "file": "fy2018-19.json",
+   "complete": true,
+   "through": "June 2019",
+   "net": 28915535817,
+   "departments": 90
+  },
+  {
+   "fiscalYear": "2017-18",
+   "beginYear": 2017,
+   "file": "fy2017-18.json",
+   "complete": true,
+   "through": "June 2018",
+   "net": 6096782501,
+   "departments": 70
+  },
+  {
+   "fiscalYear": "2016-17",
+   "beginYear": 2016,
+   "file": "fy2016-17.json",
+   "complete": true,
+   "through": "June 2017",
+   "net": 2123073255,
+   "departments": 41
+  }
+ ],
+ "source": {
+  "name": "Open FI$Cal",
+  "url": "https://open.fiscal.ca.gov/download-expenditures.html"
+ }
+}

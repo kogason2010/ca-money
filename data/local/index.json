@@ -1,0 +1,186 @@
+{
+ "schema": 1,
+ "cities": {
+  "years": [
+   "2024-25",
+   "2023-24",
+   "2022-23",
+   "2021-22",
+   "2020-21",
+   "2019-20",
+   "2018-19",
+   "2017-18",
+   "2016-17"
+  ],
+  "groups": [
+   {
+    "key": "police",
+    "label": "Police",
+    "lines": [
+     "Police"
+    ]
+   },
+   {
+    "key": "fire",
+    "label": "Fire & emergency medical",
+    "lines": [
+     "Fire",
+     "Emergency Medical Services"
+    ]
+   },
+   {
+    "key": "safety_other",
+    "label": "Other public safety",
+    "lines": []
+   },
+   {
+    "key": "streets",
+    "label": "Streets, trees & lighting",
+    "lines": [
+     "Streets/Highways/Storm Drains",
+     "Streets -Trees/Landscaping",
+     "Street Lighting"
+    ]
+   },
+   {
+    "key": "transit",
+    "label": "Transit, parking & airports",
+    "lines": []
+   },
+   {
+    "key": "parks",
+    "label": "Parks, recreation & culture",
+    "lines": []
+   },
+   {
+    "key": "libraries",
+    "label": "Libraries",
+    "lines": [
+     "Libraries"
+    ]
+   },
+   {
+    "key": "community",
+    "label": "Housing & community development",
+    "lines": []
+   },
+   {
+    "key": "sanitation",
+    "label": "Sewers & trash",
+    "lines": [
+     "Sewers",
+     "Solid Waste"
+    ]
+   },
+   {
+    "key": "health",
+    "label": "Health",
+    "lines": []
+   },
+   {
+    "key": "admin",
+    "label": "City administration",
+    "lines": []
+   },
+   {
+    "key": "other",
+    "label": "Utilities & other",
+    "lines": []
+   }
+  ],
+  "source": {
+   "name": "City - Expenditures",
+   "description": "2002-03 to 2024-25 City Financial Transactions Report - Expenditures, for the finance application.",
+   "publisher": "California State Controller's Office — By the Numbers",
+   "url": "https://bythenumbers.sco.ca.gov/d/ju3w-4gxp",
+   "updatedAt": "2026-10-28"
+  }
+ },
+ "counties": {
+  "years": [
+   "2024-25",
+   "2023-24",
+   "2022-23",
+   "2021-22",
+   "2020-21",
+   "2019-20",
+   "2018-19",
+   "2017-18",
+   "2016-17",
+   "2015-16"
+  ],
+  "groups": [
+   {
+    "key": "sheriff",
+    "label": "Sheriff & police",
+    "lines": [
+     "Police Protection"
+    ]
+   },
+   {
+    "key": "corrections",
+    "label": "Jails & corrections",
+    "lines": [
+     "Detention and Correction"
+    ]
+   },
+   {
+    "key": "courts",
+    "label": "Courts, DA & public defender",
+    "lines": [
+     "Judicial"
+    ]
+   },
+   {
+    "key": "fire",
+    "label": "Fire protection",
+    "lines": [
+     "Fire Protection"
+    ]
+   },
+   {
+    "key": "safety_other",
+    "label": "Other public protection",
+    "lines": []
+   },
+   {
+    "key": "health",
+    "label": "Health & sanitation",
+    "lines": [
+     "Health",
+     "Sanitation"
+    ]
+   },
+   {
+    "key": "roads",
+    "label": "Roads & public works",
+    "lines": [
+     "Public Ways and Facilities"
+    ]
+   },
+   {
+    "key": "assistance",
+    "label": "Public assistance & social services",
+    "lines": []
+   },
+   {
+    "key": "recreation",
+    "label": "Libraries, education & recreation",
+    "lines": []
+   },
+   {
+    "key": "admin",
+    "label": "County administration",
+    "lines": []
+   }
+  ],
+  "source": {
+   "name": "County - Expenditures",
+   "description": "2002-03 to 2024-25 County Financial Transactions Report - Expenditures, for the finance application.",
+   "publisher": "California State Controller's Office — By the Numbers",
+   "url": "https://bythenumbers.sco.ca.gov/d/uctr-c2j8",
+   "updatedAt": "2026-10-28"
+  }
+ },
+ "generatedAt": "2026-11-23T06:36:34Z"
+}

@@ -222,7 +222,9 @@ def shape_year(kind: str, end_year: int, rows: list[dict]) -> dict:
             e[b] += value
             continue
         e["v"][k_ix[b]] += value
-        label = line if kind == "cities" else f"{sub1} — {line}" if line and line != sub1 else sub1
+        # Cities: Subcategory 2 names the service line. Counties: it names the
+        # fund type (General, Special Revenue...), so lines are summed by function.
+        label = line if kind == "cities" else sub1
         li = line_names.setdefault(f"{b}|{label}", len(line_names))
         e["lines"][li] += value
     if unknown:
@@ -269,23 +271,28 @@ def run_kind(kind: str) -> dict:
     years = list(range(latest - YEARS_TO_KEEP + 1, latest + 1))
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     written = []
-    for y in years:
+    reference = None  # report layout of the newest year
+    for y in sorted(years, reverse=True):
         rows = fetch_year(kind, y)
         doc = shape_year(kind, y, rows)
-        if len(doc["entities"]) < (400 if kind == "cities" else 50):
-            # Older reports used a different layout; skip those years rather
-            # than publish a half-empty file, and log what the year contains.
-            cats = get_json(SODA.format(id=ds["id"]), {
-                "$select": "category,count(*) as n", "$where": f"fiscal_year={y}",
-                "$group": "category", "$limit": 200})
-            log(f"{kind} {fy_label_from_end(y)}: only {len(doc['entities'])} entities with the expected"
-                f" categories; skipped. Categories that year: {[c.get('category') for c in cats]}")
+        layout = {(r.get("category"), r.get("subcategory_1")) for r in rows}
+        reference = reference or layout
+        overlap = len(layout & reference) / max(1, len(layout | reference))
+        with_services = sum(1 for e in doc["entities"] if any(e[3]))
+        minimum = 400 if kind == "cities" else 50
+        if with_services < minimum or overlap < 0.85:
+            # The State Controller changed the report layout over the years.
+            # Skip years that don't match the current layout instead of
+            # publishing numbers that only cover part of the spending.
+            missing = sorted(f"{c} / {s1}" for c, s1 in reference - layout)[:12]
+            log(f"{kind} {fy_label_from_end(y)}: skipped ({with_services} entities with service lines,"
+                f" layout overlap {overlap:.0%}; missing sections: {missing})")
             continue
         path = DATA_DIR / f"{kind}-{doc['fiscalYear']}.json"
         path.write_text(json.dumps(doc, separators=(",", ":"), ensure_ascii=False))
         written.append(doc["fiscalYear"])
         log(f"{kind} {doc['fiscalYear']}: {len(rows):,} lines, {len(doc['entities'])} entities,"
-            f" {path.stat().st_size / 1024:.0f} KB")
+            f" layout overlap {overlap:.0%}, {path.stat().st_size / 1024:.0f} KB")
     if not written:
         raise RuntimeError(f"{kind}: no usable years — not updating")
     # drop files that fell out of the window

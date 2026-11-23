@@ -105,7 +105,7 @@ function renderText(sel, set) {
 }
 
 // ---------------------------------------------------------------- charts
-function hbar({ host, data, valueKey, highlight, medianValue, onPick, rowH = 30, labelW = 190, fmt = perRes, ticks: showTicks, blue }) {
+function hbar({ host, data, valueKey, highlight, medianValue, onPick, rowH = 30, labelW = 190, fmt = perRes, ticks: showTicks, blue, clipAt }) {
   host.replaceChildren();
   if (!data.length) { host.append(el("p", { class: "empty", text: "No data for this selection." })); return; }
   const width = Math.max(280, host.clientWidth || 520);
@@ -114,7 +114,8 @@ function hbar({ host, data, valueKey, highlight, medianValue, onPick, rowH = 30,
   const rh = stacked ? rowH + 14 : rowH;
   const valW = 64;
   const top = 6, height = top + data.length * rh + 26;
-  const max = d3.max(data, (d) => Math.max(valueKey(d) || 0, showTicks ? d.tick || 0 : 0)) || 1;
+  let max = d3.max(data, (d) => Math.max(valueKey(d) || 0, showTicks ? d.tick || 0 : 0)) || 1;
+  if (clipAt && clipAt < max) max = clipAt;  // extreme outliers run off the end, marked with a break
   const x = d3.scaleLinear().domain([0, Math.max(max, medianValue || 0)]).nice().range([lw + (stacked ? 2 : 0), width - valW]);
   const svg = svgEl("svg", { viewBox: `0 0 ${width} ${height}`, width, height, role: "img" });
   host.append(svg);
@@ -146,7 +147,7 @@ function hbar({ host, data, valueKey, highlight, medianValue, onPick, rowH = 30,
   row.append("path")
     .attr("fill", (d) => (blue || d.self ? cssVar("--s1") : cssVar("--dim-bar")))
     .attr("d", (d) => {
-      const x0 = x(0), x1 = Math.max(x0, x(valueKey(d) || 0)), y0 = barY, r = Math.min(4, x1 - x0);
+      const x0 = x(0), x1 = Math.max(x0, x(Math.min(valueKey(d) || 0, x.domain()[1]))), y0 = barY, r = Math.min(4, x1 - x0);
       if (x1 - x0 < 0.5) return "";
       return `M${x0},${y0}H${x1 - r}Q${x1},${y0} ${x1},${y0 + r}V${y0 + bh - r}Q${x1},${y0 + bh} ${x1 - r},${y0 + bh}H${x0}Z`;
     });
@@ -155,8 +156,11 @@ function hbar({ host, data, valueKey, highlight, medianValue, onPick, rowH = 30,
       .attr("x1", (d) => x(d.tick)).attr("x2", (d) => x(d.tick))
       .attr("y1", barY - 4).attr("y2", barY + bh + 4);
   }
+  const clipped = (d) => (valueKey(d) || 0) > x.domain()[1];
+  row.filter(clipped).append("path").attr("class", "break")
+    .attr("d", () => { const bx = x.range()[1] - 14; return `M${bx},${barY + bh + 2}l5,${-bh - 4}M${bx + 5},${barY + bh + 2}l5,${-bh - 4}`; });
   row.append("text").attr("class", "row-value")
-    .attr("x", (d) => x(valueKey(d) || 0) + 6).attr("y", barY + bh / 2).attr("dy", "0.35em")
+    .attr("x", (d) => (clipped(d) ? x.range()[1] + 6 : x(valueKey(d) || 0) + 6)).attr("y", barY + bh / 2).attr("dy", "0.35em")
     .text((d) => (valueKey(d) == null ? "—" : fmt(valueKey(d))));
   if (medianValue != null) {
     s.append("line").attr("class", "median-line").attr("x1", x(medianValue)).attr("x2", x(medianValue))
@@ -189,22 +193,49 @@ function renderProfile(sel, set) {
   hbar({ host, data, valueKey: (d) => d.v, highlight: (d) => d.key === state.s, onPick: (d) => set_({ s: d.key }), ticks: true, blue: true, rowH: 30, labelW: 236 });
 }
 
+let showAllRanks = false;
+
 function renderRank(sel, set) {
   const host = $("#rank-chart");
   const svc = groupLabel(state.s);
   $("#rank-title").textContent = `${svc}: compared with ${compareLabel(sel)}`;
   if (!sel) { host.replaceChildren(); $("#rank-sub").textContent = ""; return; }
   const med = median(set.map((r) => r.per[state.s]));
-  $("#rank-sub").textContent = `Per resident, ${dash(doc.fiscalYear)}. The thin line is the median (${perRes(med)}). Click a bar to switch to that ${noun()}.`;
-  const data = set.filter((r) => r.per[state.s] != null).sort((a, b) => b.per[state.s] - a.per[state.s]).map((r) => ({
+  const ranked = set.filter((r) => r.per[state.s] != null).sort((a, b) => b.per[state.s] - a.per[state.s]);
+  const me = ranked.findIndex((r) => r.name === sel.name);
+  const LIMIT = 21;
+  let shown = ranked;
+  if (!showAllRanks && ranked.length > LIMIT) {
+    const start = Math.max(0, Math.min(ranked.length - LIMIT, me - Math.floor(LIMIT / 2)));
+    shown = ranked.slice(start, start + LIMIT);
+  }
+  const rankNote = shown.length < ranked.length
+    ? ` Showing the ${shown.length} closest in rank to ${sel.name} (${ordinal(me + 1)} of ${ranked.length}).`
+    : ranked.length > 2 ? ` ${state.kind === "cities" ? sel.name : sel.name + " County"} ranks ${ordinal(me + 1)} of ${ranked.length}.` : "";
+  $("#rank-sub").textContent = `Per resident, ${dash(doc.fiscalYear)}. The thin line is the median (${perRes(med)}).${rankNote} Click a bar to switch to that ${noun()}.`;
+  const data = shown.map((r) => ({
     name: r.name, label: r.name, v: r.per[state.s], self: r.name === sel.name,
     tip: [{ cls: "tt-value", text: `${perRes(r.per[state.s])} per resident` }, { cls: "tt-name", text: state.kind === "cities" ? r.name : `${r.name} County` },
       { cls: "tt-sub", text: `${money(r.values[state.s] ?? r.total)} total, population ${count(r.pop)}` }],
   }));
-  hbar({ host, data, valueKey: (d) => d.v, highlight: (d) => d.self, medianValue: med, onPick: (d) => set_({ e: d.name }), rowH: state.cmp === "all" ? 22 : 26, labelW: 170 });
+  // Keep the scale readable when a few places with tiny populations are extreme.
+  const vals = ranked.map((r) => r.per[state.s]);
+  const q90 = d3.quantile(vals.slice().sort((a, b) => a - b), 0.9) || 0;
+  const clipAt = Math.max(q90 * 1.4, (sel.per[state.s] || 0) * 1.25, (med || 0) * 2.5);
+  hbar({ host, data, valueKey: (d) => d.v, highlight: (d) => d.self, medianValue: med, onPick: (d) => set_({ e: d.name }), rowH: 26, labelW: 170, clipAt });
+  if (ranked.length > LIMIT) {
+    host.append(el("button", { type: "button", class: "ghost small", onclick: () => { showAllRanks = !showAllRanks; renderRank(sel, set); } },
+      showAllRanks ? `Show the ${LIMIT} closest in rank` : `Show all ${ranked.length}`));
+  }
+  if (data.some((d) => d.v > clipAt)) host.append(el("p", { class: "small-note", text: "Bars marked with a break run past the end of the scale; their full amount is printed beside them." }));
   if (state.kind === "cities" && state.cmp === "county" && set.length <= 2) {
     host.append(el("p", { class: "small-note", text: `${sel.county} County has only ${set.length} ${set.length === 1 ? "city" : "cities"}; try “Nearest cities” for a wider comparison.` }));
   }
+}
+
+function ordinal(n) {
+  const s = ["th", "st", "nd", "rd"], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 function seqColors() { return [1, 2, 3, 4, 5].map((i) => cssVar(`--seq-${i}`)); }
@@ -301,12 +332,22 @@ function renderLines(sel) {
   const lines = sel.lines.map(([li, v]) => ({ group: doc.lines[li][0], line: doc.lines[li][1], v }));
   const order = new Map(groups().map((g, i) => [g.key, i]));
   lines.sort((a, b) => (a.group === state.s ? -1 : 0) - (b.group === state.s ? -1 : 0) || order.get(a.group) - order.get(b.group) || b.v - a.v);
-  const table = el("table", { class: "data" },
-    el("thead", {}, el("tr", {}, el("th", { text: "Service area" }), el("th", { text: "Report line" }),
-      el("th", { class: "num", text: "Amount" }), el("th", { class: "num", text: "Per resident" }))),
-    el("tbody", {}, lines.map((l) => el("tr", { class: l.group === state.s ? "self" : "" },
-      el("td", { text: groupLabel(l.group) }), el("td", { text: l.line }),
-      el("td", { class: "num", text: money(l.v) }), el("td", { class: "num", text: perRes(l.v / sel.pop) })))));
+  const body = el("tbody");
+  let current = null;
+  for (const l of lines) {
+    if (l.group !== current) {
+      current = l.group;
+      const sum = d3.sum(lines.filter((x) => x.group === current), (x) => x.v);
+      body.append(el("tr", { class: `group${current === state.s ? " self" : ""}` },
+        el("th", { scope: "rowgroup", text: groupLabel(current) }),
+        el("td", { class: "num", text: money(sum) }), el("td", { class: "num", text: perRes(sum / sel.pop) })));
+    }
+    body.append(el("tr", { class: "line" }, el("td", { text: l.line }),
+      el("td", { class: "num", text: money(l.v) }), el("td", { class: "num", text: perRes(l.v / sel.pop) })));
+  }
+  const table = el("table", { class: "data lines-table" },
+    el("thead", {}, el("tr", {}, el("th", { text: "Service area and report line" }),
+      el("th", { class: "num", text: "Amount" }), el("th", { class: "num", text: "Per resident" }))), body);
   host.append(el("div", { class: "table-wrap" }, table));
 }
 
@@ -359,6 +400,7 @@ async function load() {
 
 async function set_(patch) {
   hideTip();
+  if (patch.e || patch.s || patch.cmp || patch.kind || patch.fy) showAllRanks = false;
   const kindChanged = patch.kind && patch.kind !== state.kind;
   state = { ...state, ...patch };
   if (kindChanged) { state.e = null; state.s = "total"; state.cmp = COMPARE[state.kind][0][0]; }

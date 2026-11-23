@@ -15,9 +15,6 @@ const FUND_LABEL = {
 const AGENCY_LABEL = {
   "Bus Consumer Srvcs & Housing": "Business, Consumer Services & Housing",
   "Legislative, Judicial, & Exec": "Legislative, Judicial & Executive",
-  "Corrections & Rehabilitation": "Corrections & Rehabilitation",
-  "Labor & Workforce Development": "Labor & Workforce Development",
-  "Govt Operations": "Government Operations",
 };
 const OFFSET_NAME = "Cost recovery & offsets";
 const OTHER_DEPTS = "Other departments";
@@ -81,7 +78,7 @@ function graphOverview() {
   const { F, D, drawn, deptDrawn, agencyOf } = prep;
   const total = d3.sum(deptDrawn);
   const ranked = d3.range(D).filter((x) => deptDrawn[x] > 0).sort((a, b) => deptDrawn[b] - deptDrawn[a]);
-  const shown = new Set(ranked.filter((x, i) => i < 22 && deptDrawn[x] >= total * 0.004));
+  const shown = new Set(ranked.filter((x, i) => i < 14 && deptDrawn[x] >= total * 0.0075));
   const agencyVal = new Float64Array(doc.agencies.length);
   ranked.forEach((x) => { agencyVal[agencyOf[x]] += deptDrawn[x]; });
   const agencyRank = d3.range(doc.agencies.length).sort((a, b) => agencyVal[b] - agencyVal[a]);
@@ -150,7 +147,7 @@ function graphFund(f) {
   const vals = d3.range(D).map((x) => drawn(f, x));
   const total = d3.sum(vals);
   const ranked = d3.range(D).filter((x) => vals[x] > 0).sort((p, q) => vals[q] - vals[p]);
-  const shown = new Set(ranked.filter((x, i) => i < 20 && vals[x] >= total * 0.004));
+  const shown = new Set(ranked.filter((x, i) => i < 16 && vals[x] >= total * 0.006));
   const agencyVal = new Map();
   ranked.forEach((x) => agencyVal.set(agencyOf[x], (agencyVal.get(agencyOf[x]) || 0) + vals[x]));
   const agencyRank = [...agencyVal.keys()].sort((p, q) => agencyVal.get(q) - agencyVal.get(p));
@@ -219,14 +216,14 @@ function renderSankey() {
     : "Click or press Enter on a fund, agency or department to zoom in. Hover for amounts.";
   const byCol = d3.rollup(g.nodes, (v) => v.length, (n) => n.kind);
   const tallest = Math.max(...byCol.values());
-  const height = Math.round(Math.max(420, Math.min(1100, tallest * 25 + 70)));
+  const height = Math.round(Math.max(twoLevels ? 380 : 540, Math.min(1200, tallest * (twoLevels ? 27 : 33) + 70)));
   const narrow = width < 940;
-  const ml = twoLevels ? 96 : narrow ? 128 : 170, mr = twoLevels ? 168 : narrow ? 178 : 238, mt = 30, mb = 8;
+  const ml = twoLevels ? 96 : narrow ? 132 : 186, mr = twoLevels ? 168 : narrow ? 178 : 238, mt = 30, mb = 8;
 
   const sankey = d3.sankey()
     .nodeId((d) => d.id)
     .nodeWidth(14)
-    .nodePadding(Math.max(6, Math.min(14, (height - 80) / tallest / 3)))
+    .nodePadding(twoLevels ? 11 : 15)
     .nodeAlign(d3.sankeyJustify)
     .nodeSort((a, b) => a.order - b.order)
     .linkSort((a, b) => (a.source === b.source
@@ -291,17 +288,30 @@ function renderSankey() {
 
   // labels
   const maxChars = (d) => (twoLevels ? (d.depth === 0 ? 13 : 23)
-    : d.depth === 0 ? (narrow ? 17 : 23) : d.depth === lastDepth ? (narrow ? 22 : 30) : (narrow ? 20 : 28));
-  const label = node.filter((d) => d.y1 - d.y0 >= 9 || d.kind === "fund" && d.y1 - d.y0 >= 4)
+    : d.depth === 0 ? (narrow ? 17 : 25) : d.depth === lastDepth ? (narrow ? 22 : 30) : (narrow ? 20 : 28));
+  const pad = sankey.nodePadding();
+  const label = node.filter((d) => d.y1 - d.y0 + pad >= 15)
     .append("text").attr("class", "label")
     .attr("x", (d) => (d.depth === 0 ? d.x0 - 8 : d.x1 + 8))
     .attr("y", (d) => (d.y0 + d.y1) / 2)
     .attr("text-anchor", (d) => (d.depth === 0 ? "end" : "start"));
   label.each(function (d) {
     const t = d3.select(this);
-    const tall = d.y1 - d.y0 >= 30;
-    t.append("tspan").attr("x", t.attr("x")).attr("dy", tall ? "-0.2em" : "0.35em").text(truncate(d.name, maxChars(d)));
-    if (tall) t.append("tspan").attr("class", "amt").attr("x", t.attr("x")).attr("dy", "1.25em").text(money(d.value));
+    const h = d.y1 - d.y0 + pad;
+    const max = maxChars(d);
+    // up to two lines of name, then the amount, as space allows
+    let lines = [d.name];
+    if (d.name.length > max && h >= 44) {
+      const words = d.name.split(" ");
+      let first = "";
+      while (words.length && (first + " " + words[0]).trim().length <= max) first = (first + " " + words.shift()).trim();
+      lines = first ? [first, truncate(words.join(" "), max)] : [truncate(d.name, max)];
+    } else lines = [truncate(d.name, max)];
+    const showAmt = h >= (lines.length > 1 ? 58 : 36);
+    const total = lines.length + (showAmt ? 1 : 0);
+    lines.forEach((text, i) => t.append("tspan").attr("x", t.attr("x"))
+      .attr("dy", i === 0 ? `${0.35 - (total - 1) * 0.6}em` : "1.2em").text(text));
+    if (showAmt) t.append("tspan").attr("class", "amt").attr("x", t.attr("x")).attr("dy", "1.2em").text(money(d.value));
   });
 
   function focusLinks(ls) {
@@ -368,9 +378,9 @@ function headline() {
   const partial = !doc.complete;
   if (zoom.type === "all") {
     const net = doc.totals.net;
-    return [partial ? `So far in ${fy}, California state departments have recorded ${moneyWords(net)} in spending.`
-      : `In ${fy}, California state departments recorded ${moneyWords(net)} in spending.`,
-    "Follow it from the funds that paid for it to the agencies and departments that spent it."];
+    return [partial ? `So far in ${fy}, California state departments have recorded ${moneyWords(net)} of spending in Open FI$Cal.`
+      : `In ${fy}, California state departments recorded ${moneyWords(net)} of spending in Open FI$Cal.`,
+    "Follow it from the funds that paid for it to the agencies and departments that spent it. A few large departments are not in Open FI$Cal; see the notes below the chart."];
   }
   if (zoom.type === "agency") {
     const n = prep.agencyOf.filter((a, x) => a === zoom.a && prep.deptDrawn[x] > 0).length;

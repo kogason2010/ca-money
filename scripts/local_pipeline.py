@@ -273,12 +273,21 @@ def run_kind(kind: str) -> dict:
         rows = fetch_year(kind, y)
         doc = shape_year(kind, y, rows)
         if len(doc["entities"]) < (400 if kind == "cities" else 50):
-            raise RuntimeError(f"{kind} {y}: only {len(doc['entities'])} entities — refusing to write")
+            # Older reports used a different layout; skip those years rather
+            # than publish a half-empty file, and log what the year contains.
+            cats = get_json(SODA.format(id=ds["id"]), {
+                "$select": "category,count(*) as n", "$where": f"fiscal_year={y}",
+                "$group": "category", "$limit": 200})
+            log(f"{kind} {fy_label_from_end(y)}: only {len(doc['entities'])} entities with the expected"
+                f" categories; skipped. Categories that year: {[c.get('category') for c in cats]}")
+            continue
         path = DATA_DIR / f"{kind}-{doc['fiscalYear']}.json"
         path.write_text(json.dumps(doc, separators=(",", ":"), ensure_ascii=False))
         written.append(doc["fiscalYear"])
         log(f"{kind} {doc['fiscalYear']}: {len(rows):,} lines, {len(doc['entities'])} entities,"
             f" {path.stat().st_size / 1024:.0f} KB")
+    if not written:
+        raise RuntimeError(f"{kind}: no usable years — not updating")
     # drop files that fell out of the window
     for old in DATA_DIR.glob(f"{kind}-*.json"):
         if old.stem.split("-", 1)[1] not in written:

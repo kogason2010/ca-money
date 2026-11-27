@@ -1,15 +1,42 @@
 {
- "schema": 1,
- "generatedAt": "2026-11-23T06:47:48Z",
- "default": "2024-25",
+ "schema": 2,
+ "generatedAt": "2026-11-27T04:02:28Z",
+ "default": "2025-26",
  "years": [
+  {
+   "fiscalYear": "2026-27",
+   "beginYear": 2026,
+   "file": "fy2026-27.json",
+   "complete": false,
+   "periods": [
+    1,
+    2
+   ],
+   "through": "August 2026",
+   "net": 60073751295,
+   "departments": 179
+  },
   {
    "fiscalYear": "2025-26",
    "beginYear": 2025,
    "file": "fy2025-26.json",
-   "complete": false,
-   "through": "May 2026",
-   "net": 443142128220,
+   "complete": true,
+   "periods": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "through": "June 2026",
+   "net": 499562795926,
    "departments": 180
   },
   {
@@ -17,6 +44,20 @@
    "beginYear": 2024,
    "file": "fy2024-25.json",
    "complete": true,
+   "periods": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
    "through": "June 2025",
    "net": 472370401802,
    "departments": 179
@@ -26,6 +67,20 @@
    "beginYear": 2023,
    "file": "fy2023-24.json",
    "complete": true,
+   "periods": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
    "through": "June 2024",
    "net": 441451387787,
    "departments": 178
@@ -35,6 +90,20 @@
    "beginYear": 2022,
    "file": "fy2022-23.json",
    "complete": true,
+   "periods": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
    "through": "June 2023",
    "net": 394755305169,
    "departments": 180
@@ -44,6 +113,20 @@
    "beginYear": 2021,
    "file": "fy2021-22.json",
    "complete": true,
+   "periods": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
    "through": "June 2022",
    "net": 393631637906,
    "departments": 180
@@ -53,6 +136,20 @@
    "beginYear": 2020,
    "file": "fy2020-21.json",
    "complete": true,
+   "periods": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
    "through": "June 2021",
    "net": 490748928244,
    "departments": 179
@@ -62,6 +159,20 @@
    "beginYear": 2019,
    "file": "fy2019-20.json",
    "complete": true,
+   "periods": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
    "through": "June 2020",
    "net": 315228035045,
    "departments": 147
@@ -71,6 +182,20 @@
    "beginYear": 2018,
    "file": "fy2018-19.json",
    "complete": true,
+   "periods": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
    "through": "June 2019",
    "net": 28915535817,
    "departments": 90
@@ -80,6 +205,20 @@
    "beginYear": 2017,
    "file": "fy2017-18.json",
    "complete": true,
+   "periods": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
    "through": "June 2018",
    "net": 6096782501,
    "departments": 70
@@ -89,6 +228,20 @@
    "beginYear": 2016,
    "file": "fy2016-17.json",
    "complete": true,
+   "periods": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
    "through": "June 2017",
    "net": 2123073255,
    "departments": 41
@@ -96,6 +249,503 @@
  ],
  "source": {
   "name": "Open FI$Cal",
-  "url": "https://open.fiscal.ca.gov/download-expenditures.html"
+  "url": "https://open.fiscal.ca.gov/download-expenditures.html",
+  "filesUpdated": "Sat, 07 Nov 2026 18:05:55 GMT"
+ },
+ "stats": {
+  "rows": 355920288,
+  "skipped": 0,
+  "nonExpense": 4,
+  "otherYear": 0
+ },
+ "sourceFiles": {
+  "Spending_FY16P01.csv": [
+   "Sat, 07 Nov 2026 15:27:25 GMT",
+   155550618
+  ],
+  "Spending_FY16P02.csv": [
+   "Sat, 07 Nov 2026 15:24:51 GMT",
+   162187664
+  ],
+  "Spending_FY16P03.csv": [
+   "Sat, 07 Nov 2026 15:25:12 GMT",
+   80792120
+  ],
+  "Spending_FY16P04.csv": [
+   "Sat, 07 Nov 2026 15:27:22 GMT",
+   89447731
+  ],
+  "Spending_FY16P05.csv": [
+   "Sat, 07 Nov 2026 15:25:58 GMT",
+   83293346
+  ],
+  "Spending_FY16P06.csv": [
+   "Sat, 07 Nov 2026 15:28:24 GMT",
+   94938207
+  ],
+  "Spending_FY16P07.csv": [
+   "Sat, 07 Nov 2026 15:26:09 GMT",
+   82134204
+  ],
+  "Spending_FY16P08.csv": [
+   "Sat, 07 Nov 2026 15:28:07 GMT",
+   104964893
+  ],
+  "Spending_FY16P09.csv": [
+   "Sat, 07 Nov 2026 15:28:29 GMT",
+   94120009
+  ],
+  "Spending_FY16P10.csv": [
+   "Sat, 07 Nov 2026 15:25:45 GMT",
+   189950659
+  ],
+  "Spending_FY16P11.csv": [
+   "Sat, 07 Nov 2026 15:26:30 GMT",
+   123946136
+  ],
+  "Spending_FY16P12.csv": [
+   "Sat, 07 Nov 2026 15:25:41 GMT",
+   220611940
+  ],
+  "Spending_FY17P01.csv": [
+   "Sat, 07 Nov 2026 15:27:05 GMT",
+   318552624
+  ],
+  "Spending_FY17P02.csv": [
+   "Sat, 07 Nov 2026 15:28:51 GMT",
+   293367531
+  ],
+  "Spending_FY17P03.csv": [
+   "Sat, 07 Nov 2026 15:27:54 GMT",
+   279609033
+  ],
+  "Spending_FY17P04.csv": [
+   "Sat, 07 Nov 2026 15:26:12 GMT",
+   305570226
+  ],
+  "Spending_FY17P05.csv": [
+   "Sat, 07 Nov 2026 15:27:46 GMT",
+   276261039
+  ],
+  "Spending_FY17P06.csv": [
+   "Sat, 07 Nov 2026 15:29:19 GMT",
+   256802647
+  ],
+  "Spending_FY17P07.csv": [
+   "Sat, 07 Nov 2026 15:29:17 GMT",
+   236883541
+  ],
+  "Spending_FY17P08.csv": [
+   "Sat, 07 Nov 2026 15:28:52 GMT",
+   234099433
+  ],
+  "Spending_FY17P09.csv": [
+   "Sat, 07 Nov 2026 15:28:12 GMT",
+   251415187
+  ],
+  "Spending_FY17P10.csv": [
+   "Sat, 07 Nov 2026 15:24:44 GMT",
+   288826329
+  ],
+  "Spending_FY17P11.csv": [
+   "Sat, 07 Nov 2026 15:29:49 GMT",
+   362429613
+  ],
+  "Spending_FY17P12.csv": [
+   "Sat, 07 Nov 2026 15:27:09 GMT",
+   624593057
+  ],
+  "Spending_FY18P01.csv": [
+   "Sat, 07 Nov 2026 15:34:28 GMT",
+   349661711
+  ],
+  "Spending_FY18P02.csv": [
+   "Sat, 07 Nov 2026 15:30:01 GMT",
+   312911878
+  ],
+  "Spending_FY18P03.csv": [
+   "Sat, 07 Nov 2026 15:30:18 GMT",
+   285082523
+  ],
+  "Spending_FY18P04.csv": [
+   "Sat, 07 Nov 2026 15:33:56 GMT",
+   337337839
+  ],
+  "Spending_FY18P05.csv": [
+   "Sat, 07 Nov 2026 15:30:58 GMT",
+   243481364
+  ],
+  "Spending_FY18P06.csv": [
+   "Sat, 07 Nov 2026 15:36:16 GMT",
+   301116425
+  ],
+  "Spending_FY18P07.csv": [
+   "Sat, 07 Nov 2026 15:31:38 GMT",
+   550013729
+  ],
+  "Spending_FY18P08.csv": [
+   "Sat, 07 Nov 2026 15:34:51 GMT",
+   267194608
+  ],
+  "Spending_FY18P09.csv": [
+   "Sat, 07 Nov 2026 15:36:34 GMT",
+   282540557
+  ],
+  "Spending_FY18P10.csv": [
+   "Sat, 07 Nov 2026 15:30:44 GMT",
+   276997706
+  ],
+  "Spending_FY18P11.csv": [
+   "Sat, 07 Nov 2026 15:31:27 GMT",
+   281677923
+  ],
+  "Spending_FY18P12.csv": [
+   "Sat, 07 Nov 2026 15:30:35 GMT",
+   428166616
+  ],
+  "Spending_FY19P01.csv": [
+   "Sat, 07 Nov 2026 15:33:20 GMT",
+   1377897644
+  ],
+  "Spending_FY19P02.csv": [
+   "Sat, 07 Nov 2026 15:37:58 GMT",
+   1250623838
+  ],
+  "Spending_FY19P03.csv": [
+   "Sat, 07 Nov 2026 15:36:03 GMT",
+   1198835422
+  ],
+  "Spending_FY19P04.csv": [
+   "Sat, 07 Nov 2026 15:33:50 GMT",
+   1811040101
+  ],
+  "Spending_FY19P05.csv": [
+   "Sat, 07 Nov 2026 15:35:45 GMT",
+   1190429204
+  ],
+  "Spending_FY19P06.csv": [
+   "Sat, 07 Nov 2026 15:39:34 GMT",
+   1340558763
+  ],
+  "Spending_FY19P07.csv": [
+   "Sat, 07 Nov 2026 15:38:17 GMT",
+   1279026892
+  ],
+  "Spending_FY19P08.csv": [
+   "Sat, 07 Nov 2026 15:38:00 GMT",
+   991631061
+  ],
+  "Spending_FY19P09.csv": [
+   "Sat, 07 Nov 2026 15:36:29 GMT",
+   1282519532
+  ],
+  "Spending_FY19P10.csv": [
+   "Sat, 07 Nov 2026 15:31:13 GMT",
+   1283672470
+  ],
+  "Spending_FY19P11.csv": [
+   "Sat, 07 Nov 2026 16:04:14 GMT",
+   1317005962
+  ],
+  "Spending_FY19P12.csv": [
+   "Sat, 07 Nov 2026 15:34:26 GMT",
+   2077900301
+  ],
+  "Spending_FY20P01.csv": [
+   "Sat, 07 Nov 2026 16:11:47 GMT",
+   1118967698
+  ],
+  "Spending_FY20P02.csv": [
+   "Sat, 07 Nov 2026 16:04:25 GMT",
+   1053027801
+  ],
+  "Spending_FY20P03.csv": [
+   "Sat, 07 Nov 2026 16:04:50 GMT",
+   1012456860
+  ],
+  "Spending_FY20P04.csv": [
+   "Sat, 07 Nov 2026 16:10:11 GMT",
+   1073112955
+  ],
+  "Spending_FY20P05.csv": [
+   "Sat, 07 Nov 2026 16:06:15 GMT",
+   963022113
+  ],
+  "Spending_FY20P06.csv": [
+   "Sat, 07 Nov 2026 16:15:02 GMT",
+   1085058600
+  ],
+  "Spending_FY20P07.csv": [
+   "Sat, 07 Nov 2026 16:08:23 GMT",
+   1075513418
+  ],
+  "Spending_FY20P08.csv": [
+   "Sat, 07 Nov 2026 16:13:27 GMT",
+   1105746329
+  ],
+  "Spending_FY20P09.csv": [
+   "Sat, 07 Nov 2026 16:16:40 GMT",
+   1157388760
+  ],
+  "Spending_FY20P10.csv": [
+   "Sat, 07 Nov 2026 16:06:57 GMT",
+   1738075179
+  ],
+  "Spending_FY20P11.csv": [
+   "Sat, 07 Nov 2026 16:09:04 GMT",
+   1584276089
+  ],
+  "Spending_FY20P12.csv": [
+   "Sat, 07 Nov 2026 16:07:10 GMT",
+   2087819549
+  ],
+  "Spending_FY21P01.csv": [
+   "Sat, 07 Nov 2026 16:10:14 GMT",
+   1344715639
+  ],
+  "Spending_FY21P02.csv": [
+   "Sat, 07 Nov 2026 16:17:13 GMT",
+   1204195066
+  ],
+  "Spending_FY21P03.csv": [
+   "Sat, 07 Nov 2026 16:15:30 GMT",
+   1289585695
+  ],
+  "Spending_FY21P04.csv": [
+   "Sat, 07 Nov 2026 16:12:11 GMT",
+   2281301142
+  ],
+  "Spending_FY21P05.csv": [
+   "Sat, 07 Nov 2026 16:14:37 GMT",
+   1923253211
+  ],
+  "Spending_FY21P06.csv": [
+   "Sat, 07 Nov 2026 16:20:06 GMT",
+   2128969104
+  ],
+  "Spending_FY21P07.csv": [
+   "Sat, 07 Nov 2026 16:19:29 GMT",
+   1660999455
+  ],
+  "Spending_FY21P08.csv": [
+   "Sat, 07 Nov 2026 16:18:59 GMT",
+   1600832642
+  ],
+  "Spending_FY21P09.csv": [
+   "Sat, 07 Nov 2026 16:17:53 GMT",
+   1913333377
+  ],
+  "Spending_FY21P10.csv": [
+   "Sat, 07 Nov 2026 16:08:48 GMT",
+   1800964664
+  ],
+  "Spending_FY21P11.csv": [
+   "Sat, 07 Nov 2026 16:47:05 GMT",
+   1833965359
+  ],
+  "Spending_FY21P12.csv": [
+   "Sat, 07 Nov 2026 16:13:29 GMT",
+   2330691495
+  ],
+  "Spending_FY22P01.csv": [
+   "Sat, 07 Nov 2026 16:54:57 GMT",
+   1308918042
+  ],
+  "Spending_FY22P02.csv": [
+   "Sat, 07 Nov 2026 16:47:44 GMT",
+   1370408766
+  ],
+  "Spending_FY22P03.csv": [
+   "Sat, 07 Nov 2026 16:48:03 GMT",
+   1411984360
+  ],
+  "Spending_FY22P04.csv": [
+   "Sat, 07 Nov 2026 16:53:08 GMT",
+   1524591551
+  ],
+  "Spending_FY22P05.csv": [
+   "Sat, 07 Nov 2026 16:49:25 GMT",
+   1585109416
+  ],
+  "Spending_FY22P06.csv": [
+   "Sat, 07 Nov 2026 16:59:15 GMT",
+   1543655003
+  ],
+  "Spending_FY22P07.csv": [
+   "Sat, 07 Nov 2026 16:51:23 GMT",
+   1619596221
+  ],
+  "Spending_FY22P08.csv": [
+   "Sat, 07 Nov 2026 16:57:18 GMT",
+   1738505389
+  ],
+  "Spending_FY22P09.csv": [
+   "Sat, 07 Nov 2026 17:00:34 GMT",
+   1830628378
+  ],
+  "Spending_FY22P10.csv": [
+   "Sat, 07 Nov 2026 16:50:14 GMT",
+   1792719647
+  ],
+  "Spending_FY22P11.csv": [
+   "Sat, 07 Nov 2026 16:54:21 GMT",
+   1886613723
+  ],
+  "Spending_FY22P12.csv": [
+   "Sat, 07 Nov 2026 16:51:22 GMT",
+   2330511065
+  ],
+  "Spending_FY23P01.csv": [
+   "Sat, 07 Nov 2026 16:54:52 GMT",
+   1373876615
+  ],
+  "Spending_FY23P02.csv": [
+   "Sat, 07 Nov 2026 17:00:39 GMT",
+   1283578026
+  ],
+  "Spending_FY23P03.csv": [
+   "Sat, 07 Nov 2026 16:59:12 GMT",
+   1255397815
+  ],
+  "Spending_FY23P04.csv": [
+   "Sat, 07 Nov 2026 16:56:13 GMT",
+   1390119039
+  ],
+  "Spending_FY23P05.csv": [
+   "Sat, 07 Nov 2026 16:58:03 GMT",
+   1343435124
+  ],
+  "Spending_FY23P06.csv": [
+   "Sat, 07 Nov 2026 17:03:04 GMT",
+   1421705878
+  ],
+  "Spending_FY23P07.csv": [
+   "Sat, 07 Nov 2026 17:02:34 GMT",
+   1384765069
+  ],
+  "Spending_FY23P08.csv": [
+   "Sat, 07 Nov 2026 17:03:05 GMT",
+   1576672229
+  ],
+  "Spending_FY23P09.csv": [
+   "Sat, 07 Nov 2026 17:01:06 GMT",
+   1393660793
+  ],
+  "Spending_FY23P10.csv": [
+   "Sat, 07 Nov 2026 16:52:42 GMT",
+   1615158861
+  ],
+  "Spending_FY23P11.csv": [
+   "Sat, 07 Nov 2026 17:27:30 GMT",
+   1633073659
+  ],
+  "Spending_FY23P12.csv": [
+   "Sat, 07 Nov 2026 16:57:32 GMT",
+   2111139014
+  ],
+  "Spending_FY24P01.csv": [
+   "Sat, 07 Nov 2026 17:35:57 GMT",
+   1728925219
+  ],
+  "Spending_FY24P02.csv": [
+   "Sat, 07 Nov 2026 17:28:21 GMT",
+   1434042207
+  ],
+  "Spending_FY24P03.csv": [
+   "Sat, 07 Nov 2026 17:29:17 GMT",
+   1771112480
+  ],
+  "Spending_FY24P04.csv": [
+   "Sat, 07 Nov 2026 17:33:09 GMT",
+   1519790183
+  ],
+  "Spending_FY24P05.csv": [
+   "Sat, 07 Nov 2026 17:29:05 GMT",
+   1398793943
+  ],
+  "Spending_FY24P06.csv": [
+   "Sat, 07 Nov 2026 17:39:43 GMT",
+   1462290469
+  ],
+  "Spending_FY24P07.csv": [
+   "Sat, 07 Nov 2026 17:30:53 GMT",
+   1430428849
+  ],
+  "Spending_FY24P08.csv": [
+   "Sat, 07 Nov 2026 17:37:09 GMT",
+   1449329544
+  ],
+  "Spending_FY24P09.csv": [
+   "Sat, 07 Nov 2026 17:40:23 GMT",
+   1436299528
+  ],
+  "Spending_FY24P10.csv": [
+   "Sat, 07 Nov 2026 17:30:20 GMT",
+   1514312353
+  ],
+  "Spending_FY24P11.csv": [
+   "Sat, 07 Nov 2026 17:33:51 GMT",
+   1580729515
+  ],
+  "Spending_FY24P12.csv": [
+   "Sat, 07 Nov 2026 17:31:41 GMT",
+   2087367123
+  ],
+  "Spending_FY25P01.csv": [
+   "Sat, 07 Nov 2026 17:34:58 GMT",
+   1588546974
+  ],
+  "Spending_FY25P02.csv": [
+   "Sat, 07 Nov 2026 17:40:31 GMT",
+   1325190229
+  ],
+  "Spending_FY25P03.csv": [
+   "Sat, 07 Nov 2026 17:38:33 GMT",
+   1294228042
+  ],
+  "Spending_FY25P04.csv": [
+   "Sat, 07 Nov 2026 17:35:39 GMT",
+   1482792935
+  ],
+  "Spending_FY25P05.csv": [
+   "Sat, 07 Nov 2026 17:37:44 GMT",
+   1133397289
+  ],
+  "Spending_FY25P06.csv": [
+   "Sat, 07 Nov 2026 17:42:25 GMT",
+   1417578333
+  ],
+  "Spending_FY25P07.csv": [
+   "Sat, 07 Nov 2026 17:41:59 GMT",
+   1440651530
+  ],
+  "Spending_FY25P08.csv": [
+   "Sat, 07 Nov 2026 17:43:10 GMT",
+   1447999865
+  ],
+  "Spending_FY25P09.csv": [
+   "Sat, 07 Nov 2026 17:41:36 GMT",
+   1436310607
+  ],
+  "Spending_FY25P10.csv": [
+   "Sat, 07 Nov 2026 17:32:29 GMT",
+   1537312611
+  ],
+  "Spending_FY25P11.csv": [
+   "Sat, 07 Nov 2026 18:05:04 GMT",
+   1537560775
+  ],
+  "Spending_FY25P12.csv": [
+   "Sat, 07 Nov 2026 17:38:24 GMT",
+   2004803226
+  ],
+  "Spending_FY26P01.csv": [
+   "Sat, 07 Nov 2026 18:05:55 GMT",
+   1551592302
+  ],
+  "Spending_FY26P02.csv": [
+   "Sat, 07 Nov 2026 18:05:15 GMT",
+   1190052983
+  ]
  }
 }

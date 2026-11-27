@@ -43,7 +43,7 @@
    },
    {
     "key": "transit",
-    "label": "Transit, parking & airports",
+    "label": "Transit, parking, airports & ports",
     "lines": []
    },
    {
@@ -60,12 +60,12 @@
    },
    {
     "key": "community",
-    "label": "Housing & community development",
+    "label": "Community development & housing",
     "lines": []
    },
    {
     "key": "sanitation",
-    "label": "Sewers & trash",
+    "label": "Sewers & solid waste",
     "lines": [
      "Sewers",
      "Solid Waste"
@@ -73,12 +73,12 @@
    },
    {
     "key": "health",
-    "label": "Health",
+    "label": "Health & social services",
     "lines": []
    },
    {
     "key": "admin",
-    "label": "City administration",
+    "label": "General government",
     "lines": []
    },
    {
@@ -110,21 +110,21 @@
   "groups": [
    {
     "key": "sheriff",
-    "label": "Sheriff & police",
+    "label": "Police protection",
     "lines": [
      "Police Protection"
     ]
    },
    {
     "key": "corrections",
-    "label": "Jails & corrections",
+    "label": "Detention & correction",
     "lines": [
      "Detention and Correction"
     ]
    },
    {
     "key": "courts",
-    "label": "Courts, DA & public defender",
+    "label": "Judicial",
     "lines": [
      "Judicial"
     ]
@@ -151,24 +151,24 @@
    },
    {
     "key": "roads",
-    "label": "Roads & public works",
+    "label": "Roads & public ways",
     "lines": [
      "Public Ways and Facilities"
     ]
    },
    {
     "key": "assistance",
-    "label": "Public assistance & social services",
+    "label": "Public assistance",
     "lines": []
    },
    {
     "key": "recreation",
-    "label": "Libraries, education & recreation",
+    "label": "Education, recreation & culture",
     "lines": []
    },
    {
     "key": "admin",
-    "label": "County administration",
+    "label": "General government",
     "lines": []
    }
   ],
@@ -180,5 +180,5 @@
    "updatedAt": "2026-10-28"
   }
  },
- "generatedAt": "2026-11-23T06:48:47Z"
+ "generatedAt": "2026-11-27T04:03:30Z"
 }

@@ -58,7 +58,7 @@ with sync_playwright() as p:
         page.fill("#entity-input", "Fresno")
         page.press("#entity-input", "Enter")
         page.wait_for_timeout(400)
-        page.locator("#service-chips button", has_text="Sheriff").click()
+        page.locator("#service-chips button", has_text="Police protection").click()
         print(label, "county:", page.locator("#local-headline").inner_text(), page.evaluate("location.hash"))
         shot(page, f"{label}-counties")
         # local: cities, nearest comparison, pick from rank chart

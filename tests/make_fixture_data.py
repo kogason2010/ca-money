@@ -23,8 +23,8 @@ funds = ["Bond Funds", "Federal Funds", "General Fund", "Other NonGovt Cost Fund
 agencies = ["Bus Consumer Srvcs & Housing", "Corrections & Rehabilitation", "Education", "Environmental Protection",
             "General Government", "Health and Human Services", "Legislative, Judicial, & Exec", "Natural Resources",
             "Transportation", "Labor & Workforce Development", "Govt Operations"]
-types = ["Personal services", "Operating Expense & Equipment", "Local Assistance", "Internal Cost Recovery",
-         "Capital Outlay", "Special Items of Expense"]
+types = ["Personal services", "Operating Expense & Equipment", "Deductions (Trust, Agency, Fee", "Internal Cost Recovery",
+         "Prior Year Adjustments", "Special Items of Expense"]
 (out / "state").mkdir(parents=True, exist_ok=True)
 years = []
 for by in range(2016, 2026):
@@ -38,20 +38,20 @@ for by in range(2016, 2026):
                 for t in range(len(types)):
                     if rng.random() < 0.5:
                         v = scale * rng.random()
-                        if types[t] == "Internal Cost Recovery":
+                        if types[t] in ("Internal Cost Recovery", "Prior Year Adjustments"):
                             v = -v * 0.3
-                        flows.append([f, d, t, round(v)])
+                        flows.append([f, d, t, round(v * 100)])
     periods = list(range(1, 13)) if by < 2025 else list(range(1, 12))
-    doc = {"schema": 1, "fiscalYear": f"{by}-{(by + 1) % 100:02d}", "beginYear": by, "periods": periods,
+    doc = {"schema": 2, "unit": "cents", "fiscalYear": f"{by}-{(by + 1) % 100:02d}", "beginYear": by, "periods": periods,
            "complete": len(periods) == 12, "through": "June" if len(periods) == 12 else "May 2026",
-           "generatedAt": "2026-11-22T00:00:00Z", "source": {"files": []},
-           "totals": {"net": sum(f[3] for f in flows), "rows": 123456}, "funds": funds, "agencies": agencies,
+           "generatedAt": "2026-11-22T00:00:00Z", "source": {"files": [], "filesUpdated": "Sat, 07 Nov 2026 18:05:04 GMT"},
+           "totals": {"netCents": sum(f[3] for f in flows), "net": round(sum(f[3] for f in flows) / 100), "rows": 123456}, "funds": funds, "agencies": agencies,
            "departments": depts, "spendTypes": types, "flows": flows,
-           "fundDetail": [[f, f"{f:04d}", f"Example fund {f}", 1000000] for f in range(len(funds))]}
+           "fundDetail": [[f, f"{f:04d}", f"Example fund {f}", 100000000] for f in range(len(funds))]}
     name = f"fy{doc['fiscalYear']}.json"
     (out / "state" / name).write_text(json.dumps(doc))
     years.append({"fiscalYear": doc["fiscalYear"], "beginYear": by, "file": name, "complete": doc["complete"],
-                  "through": doc["through"], "net": doc["totals"]["net"], "departments": n_dept})
+                  "through": doc["through"], "net": doc["totals"]["net"], "departments": n_dept, "periods": periods})
 years.sort(key=lambda y: -y["beginYear"])
 (out / "state" / "index.json").write_text(json.dumps({"schema": 1, "default": "2024-25", "years": years}))
 
@@ -72,9 +72,9 @@ for kind in ("cities", "counties"):
     for end in range(2016, 2026):
         ents = []
         if kind == "cities":
-            names = ["Sacramento", "Pasadena", "Los Angeles", "Industry"] + [f"Example City {i}" for i in range(120)]
+            names = ["Sacramento", "Pasadena", "Los Angeles", "Industry", "San Francisco"] + [f"Example City {i}" for i in range(120)]
             for i, nm in enumerate(names):
-                c = counties[i % len(counties)] if i > 3 else ["Sacramento", "Los Angeles", "Los Angeles", "Los Angeles"][i]
+                c = counties[i % len(counties)] if i > 4 else ["Sacramento", "Los Angeles", "Los Angeles", "Los Angeles", "San Francisco"][i]
                 pop = 219 if nm == "Industry" else int(math.exp(rng.gauss(10.5, 1.2)))
                 vals = [round(pop * rng.uniform(0, 600)) for _ in groups]
                 if rng.random() < 0.3:
@@ -86,6 +86,8 @@ for kind in ("cities", "counties"):
             topo = json.loads((Path(__file__).resolve().parent.parent / "data/geo/ca-counties.topo.json").read_text())
             for g in topo["objects"]["counties"]["geometries"]:
                 nm = g["properties"]["name"]
+                if nm == "San Francisco":
+                    continue
                 pop = int(math.exp(rng.gauss(12, 1.4)))
                 vals = [round(pop * rng.uniform(20, 900)) for _ in groups]
                 ents.append([nm, 1000, pop, vals, round(pop * 90), round(pop * 30), [[j, v] for j, v in enumerate(vals) if v]])

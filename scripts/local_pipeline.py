@@ -57,13 +57,13 @@ CITY_GROUPS = [
     ("safety_other", "Other public safety", []),
     ("streets", "Streets, trees & lighting",
      ["Streets/Highways/Storm Drains", "Streets -Trees/Landscaping", "Street Lighting"]),
-    ("transit", "Transit, parking & airports", []),
+    ("transit", "Transit, parking, airports & ports", []),
     ("parks", "Parks, recreation & culture", []),
     ("libraries", "Libraries", ["Libraries"]),
-    ("community", "Housing & community development", []),
-    ("sanitation", "Sewers & trash", ["Sewers", "Solid Waste"]),
-    ("health", "Health", []),
-    ("admin", "City administration", []),
+    ("community", "Community development & housing", []),
+    ("sanitation", "Sewers & solid waste", ["Sewers", "Solid Waste"]),
+    ("health", "Health & social services", []),
+    ("admin", "General government", []),
     ("other", "Utilities & other", []),
 ]
 CITY_SECTION_DEFAULT = {
@@ -84,16 +84,16 @@ CITY_CATEGORIES = [
 ]
 
 COUNTY_GROUPS = [
-    ("sheriff", "Sheriff & police", ["Police Protection"]),
-    ("corrections", "Jails & corrections", ["Detention and Correction"]),
-    ("courts", "Courts, DA & public defender", ["Judicial"]),
+    ("sheriff", "Police protection", ["Police Protection"]),
+    ("corrections", "Detention & correction", ["Detention and Correction"]),
+    ("courts", "Judicial", ["Judicial"]),
     ("fire", "Fire protection", ["Fire Protection"]),
     ("safety_other", "Other public protection", []),
     ("health", "Health & sanitation", ["Health", "Sanitation"]),
-    ("roads", "Roads & public works", ["Public Ways and Facilities"]),
-    ("assistance", "Public assistance & social services", []),
-    ("recreation", "Libraries, education & recreation", []),
-    ("admin", "County administration", []),
+    ("roads", "Roads & public ways", ["Public Ways and Facilities"]),
+    ("assistance", "Public assistance", []),
+    ("recreation", "Education, recreation & culture", []),
+    ("admin", "General government", []),
 ]
 COUNTY_SECTION_DEFAULT = {  # keyed by Category for counties
     "Public Protection": "safety_other",

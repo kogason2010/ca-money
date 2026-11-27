@@ -16,7 +16,21 @@ const AGENCY_LABEL = {
   "Bus Consumer Srvcs & Housing": "Business, Consumer Services & Housing",
   "Legislative, Judicial, & Exec": "Legislative, Judicial & Executive",
 };
-const OFFSET_NAME = "Cost recovery & offsets";
+const OFFSET_NAME = "Negative entries";
+// Account-type names as Open FI$Cal stores them -> display name and a short
+// description based on the State Administrative Manual, section 7670.
+const TYPE_INFO = {
+  "Personal services": ["Personal services", "Salaries, wages and employee benefits."],
+  "Operating Expense & Equipment": ["Operating expenses & equipment", "Goods and services other than personal services and special items of expense."],
+  "Special Items of Expense": ["Special items of expense", "Large or special-purpose expenditures that normally have their own appropriation, such as medical and health care payments."],
+  "Deductions (Trust, Agency, Fee": ["Deductions (trust, agency & feeder funds)", "Payments out of money held in trust, agency or feeder funds."],
+  "Internal Cost Recovery": ["Internal cost recovery", "Allocated costs of central service agencies."],
+  "Unclassified Expenses": ["Unclassified expenses", "Expenditures not described by any other account."],
+  "Prior Year Adjustments": ["Prior-year adjustments", "Adjustments to prior-year appropriations."],
+  "Unappropriated Expenses": ["Unappropriated expenses", "Expenditures not appropriated in the Budget Act, such as refunds to reverted appropriations."],
+};
+const typeName = (t) => (TYPE_INFO[doc.spendTypes[t]] || [doc.spendTypes[t]])[0];
+const typeNote = (t) => (TYPE_INFO[doc.spendTypes[t]] || [])[1];
 const OTHER_DEPTS = "Other departments";
 
 let index = null;
@@ -85,10 +99,11 @@ function graphOverview() {
   const aOrder = new Map(agencyRank.map((a, i) => [a, i]));
 
   const nodes = [], links = new Map();
-  for (let f = 0; f < F; f++) nodes.push({ id: `f${f}`, kind: "fund", f, name: fundName(f), order: fundOrder(f) });
-  agencyRank.forEach((a, i) => { if (agencyVal[a] > 0) nodes.push({ id: `a${a}`, kind: "agency", a, name: agencyName(a), order: i }); });
-  for (const x of shown) nodes.push({ id: `d${x}`, kind: "dept", d: x, name: deptName(x), order: aOrder.get(agencyOf[x]) * 1e3 - deptDrawn[x] / total });
-  nodes.push({ id: "other", kind: "other", name: `${OTHER_DEPTS} (${ranked.length - shown.size})`, order: 1e9 });
+  const rest = ranked.filter((x) => !shown.has(x));
+  for (let f = 0; f < F; f++) nodes.push({ id: `f${f}`, kind: "fund", f, name: fundName(f), order: fundOrder(f), net: prep.fundNet[f] });
+  agencyRank.forEach((a, i) => { if (agencyVal[a] > 0) nodes.push({ id: `a${a}`, kind: "agency", a, name: agencyName(a), order: i, net: prep.agencyNet[a] }); });
+  for (const x of shown) nodes.push({ id: `d${x}`, kind: "dept", d: x, name: deptName(x), order: aOrder.get(agencyOf[x]) * 1e3 - deptDrawn[x] / total, net: prep.deptNet[x] });
+  nodes.push({ id: "other", kind: "other", name: `${OTHER_DEPTS} (${rest.length})`, order: 1e9, net: d3.sum(rest, (x) => prep.deptNet[x]) });
 
   for (const x of ranked) {
     const a = agencyOf[x];
@@ -98,32 +113,37 @@ function graphOverview() {
       addLink(links, `a${a}`, shown.has(x) ? `d${x}` : "other", v, f);
     }
   }
-  return { nodes, links: [...links.values()], heads: ["Fund group", "Agency", "Department"], total };
+  return { nodes, links: [...links.values()], heads: ["Fund group", "Agency", "Department"], total, netTotal: doc.totals.net };
 }
 
-function typeStage(nodes, links, deptIds) {
-  // Spending types for a set of departments, with a balancing source for
-  // negative entries (cost recovery etc.) so every band adds up.
-  const { netDT, deptDrawn } = prep;
-  const typeVal = new Map();
-  let offsets = 0;
-  for (const group of deptIds) {
-    const [nodeId, members] = group;
-    let pos = 0, inflow = 0;
+function typeStage(nodes, links, groups) {
+  // Spending types for groups of departments. Types with a net negative
+  // amount (internal cost recovery, adjustments...) can't be drawn as bands
+  // leaving a department, so their exact total is drawn flowing in instead.
+  const { netDT } = prep;
+  const typeVal = new Map(), negByType = new Map();
+  let negTotal = 0;
+  for (const [nodeId, members] of groups) {
+    let neg = 0;
     for (const x of members) {
-      inflow += deptDrawn[x];
-      for (const [t, v] of netDT[x]) if (v > 0) {
-        pos += v;
-        typeVal.set(t, (typeVal.get(t) || 0) + v);
-        addLink(links, nodeId, `t${t}`, v, -1);
+      for (const [t, v] of netDT[x]) {
+        if (v > 0) {
+          typeVal.set(t, (typeVal.get(t) || 0) + v);
+          addLink(links, nodeId, `t${t}`, v, -1);
+        } else if (v < 0) {
+          neg -= v;
+          negByType.set(t, (negByType.get(t) || 0) - v);
+        }
       }
     }
-    const bal = pos - inflow;
-    if (bal > 0.5) { offsets += bal; addLink(links, "offset", nodeId, bal, -2); }
+    if (neg > 0) { negTotal += neg; addLink(links, "offset", nodeId, neg, -2); }
   }
-  [...typeVal.entries()].sort((a, b) => b[1] - a[1]).forEach(([t], i) =>
-    nodes.push({ id: `t${t}`, kind: "type", t, name: doc.spendTypes[t], order: i }));
-  if (offsets > 0) nodes.push({ id: "offset", kind: "offset", name: OFFSET_NAME, order: 1e9 });
+  [...typeVal.entries()].sort((a, b) => b[1] - a[1]).forEach(([t, v], i) =>
+    nodes.push({ id: `t${t}`, kind: "type", t, name: typeName(t), order: i, net: v }));
+  if (negTotal > 0) {
+    nodes.push({ id: "offset", kind: "offset", name: OFFSET_NAME, order: 1e9, net: -negTotal,
+      detail: [...negByType.entries()].sort((a, b) => b[1] - a[1]) });
+  }
 }
 
 function graphAgency(a) {
@@ -132,14 +152,15 @@ function graphAgency(a) {
   const shown = members.slice(0, members.length > 24 ? 23 : 24);
   const rest = members.slice(shown.length);
   const nodes = [], links = new Map();
-  for (let f = 0; f < F; f++) nodes.push({ id: `f${f}`, kind: "fund", f, name: fundName(f), order: fundOrder(f) });
-  shown.forEach((x, i) => nodes.push({ id: `d${x}`, kind: "dept", d: x, name: deptName(x), order: i }));
-  if (rest.length) nodes.push({ id: "other", kind: "other", name: `${OTHER_DEPTS} (${rest.length})`, order: 1e9 });
+  const inAgency = d3.range(D).filter((x) => agencyOf[x] === a);
+  for (let f = 0; f < F; f++) nodes.push({ id: `f${f}`, kind: "fund", f, name: fundName(f), order: fundOrder(f), net: d3.sum(inAgency, (x) => prep.netFD[f * D + x]) });
+  shown.forEach((x, i) => nodes.push({ id: `d${x}`, kind: "dept", d: x, name: deptName(x), order: i, net: prep.deptNet[x] }));
+  if (rest.length) nodes.push({ id: "other", kind: "other", name: `${OTHER_DEPTS} (${rest.length})`, order: 1e9, net: d3.sum(rest, (x) => prep.deptNet[x]) });
   for (const x of members) for (let f = 0; f < F; f++) addLink(links, `f${f}`, rest.includes(x) ? "other" : `d${x}`, drawn(f, x), f);
   const groups = shown.map((x) => [`d${x}`, [x]]);
   if (rest.length) groups.push(["other", rest]);
   typeStage(nodes, links, groups);
-  return { nodes, links: [...links.values()], heads: ["Fund group", "Department", "Spending type"], total: d3.sum(members, (x) => deptDrawn[x]) };
+  return { nodes, links: [...links.values()], heads: ["Fund group", "Department", "Spending type"], total: d3.sum(members, (x) => deptDrawn[x]), netTotal: prep.agencyNet[a] };
 }
 
 function graphFund(f) {
@@ -152,25 +173,27 @@ function graphFund(f) {
   ranked.forEach((x) => agencyVal.set(agencyOf[x], (agencyVal.get(agencyOf[x]) || 0) + vals[x]));
   const agencyRank = [...agencyVal.keys()].sort((p, q) => agencyVal.get(q) - agencyVal.get(p));
   const aOrder = new Map(agencyRank.map((a, i) => [a, i]));
-  const nodes = [{ id: `f${f}`, kind: "fund", f, name: fundName(f), order: 0, static: true }], links = new Map();
-  agencyRank.forEach((a, i) => nodes.push({ id: `a${a}`, kind: "agency", a, name: agencyName(a), order: i }));
-  for (const x of shown) nodes.push({ id: `d${x}`, kind: "dept", d: x, name: deptName(x), order: aOrder.get(agencyOf[x]) * 1e3 - vals[x] / total });
-  if (ranked.length > shown.size) nodes.push({ id: "other", kind: "other", name: `${OTHER_DEPTS} (${ranked.length - shown.size})`, order: 1e9 });
+  const netOf = (x) => prep.netFD[f * D + x];
+  const rest = ranked.filter((x) => !shown.has(x));
+  const nodes = [{ id: `f${f}`, kind: "fund", f, name: fundName(f), order: 0, static: true, net: prep.fundNet[f] }], links = new Map();
+  agencyRank.forEach((a, i) => nodes.push({ id: `a${a}`, kind: "agency", a, name: agencyName(a), order: i, net: d3.sum(d3.range(D).filter((x) => agencyOf[x] === a), netOf) }));
+  for (const x of shown) nodes.push({ id: `d${x}`, kind: "dept", d: x, name: deptName(x), order: aOrder.get(agencyOf[x]) * 1e3 - vals[x] / total, net: netOf(x) });
+  if (rest.length) nodes.push({ id: "other", kind: "other", name: `${OTHER_DEPTS} (${rest.length})`, order: 1e9, net: d3.sum(rest, netOf) });
   for (const x of ranked) {
     addLink(links, `f${f}`, `a${agencyOf[x]}`, vals[x], f);
     addLink(links, `a${agencyOf[x]}`, shown.has(x) ? `d${x}` : "other", vals[x], f);
   }
-  return { nodes, links: [...links.values()], heads: ["Fund group", "Agency", "Department"], total };
+  return { nodes, links: [...links.values()], heads: ["Fund group", "Agency", "Department"], total, netTotal: prep.fundNet[f] };
 }
 
 function graphDept(x) {
   const { F, drawn, deptDrawn } = prep;
   const nodes = [], links = new Map();
-  for (let f = 0; f < F; f++) nodes.push({ id: `f${f}`, kind: "fund", f, name: fundName(f), order: fundOrder(f) });
-  nodes.push({ id: `d${x}`, kind: "dept", d: x, name: deptName(x), order: 0, static: true });
+  for (let f = 0; f < F; f++) nodes.push({ id: `f${f}`, kind: "fund", f, name: fundName(f), order: fundOrder(f), net: prep.netFD[f * prep.D + x] });
+  nodes.push({ id: `d${x}`, kind: "dept", d: x, name: deptName(x), order: 0, static: true, net: prep.deptNet[x] });
   for (let f = 0; f < F; f++) addLink(links, `f${f}`, `d${x}`, drawn(f, x), f);
   typeStage(nodes, links, [[`d${x}`, [x]]]);
-  return { nodes, links: [...links.values()], heads: ["Fund group", "Department", "Spending type"], total: deptDrawn[x] };
+  return { nodes, links: [...links.values()], heads: ["Fund group", "Department", "Spending type"], total: deptDrawn[x], netTotal: prep.deptNet[x] };
 }
 
 function currentGraph(twoLevels) {
@@ -262,7 +285,7 @@ function renderSankey() {
     .attr("class", (d) => `node${zoomTarget(d) ? "" : " static"}`)
     .attr("tabindex", 0)
     .attr("role", (d) => (zoomTarget(d) ? "button" : "img"))
-    .attr("aria-label", (d) => `${d.name}, ${money(d.value)}${zoomTarget(d) ? ". Press Enter to zoom in." : ""}`);
+    .attr("aria-label", (d) => `${d.name}, ${money(amountOf(d))}${zoomTarget(d) ? ". Press Enter to zoom in." : ""}`);
   node.append("rect").attr("class", "hit")
     .attr("x", (d) => d.x0 - 6).attr("y", (d) => d.y0 - 2)
     .attr("width", (d) => d.x1 - d.x0 + 12).attr("height", (d) => Math.max(8, d.y1 - d.y0 + 4))
@@ -311,7 +334,7 @@ function renderSankey() {
     const total = lines.length + (showAmt ? 1 : 0);
     lines.forEach((text, i) => t.append("tspan").attr("x", t.attr("x"))
       .attr("dy", i === 0 ? `${0.35 - (total - 1) * 0.6}em` : "1.2em").text(text));
-    if (showAmt) t.append("tspan").attr("class", "amt").attr("x", t.attr("x")).attr("dy", "1.2em").text(money(d.value));
+    if (showAmt) t.append("tspan").attr("class", "amt").attr("x", t.attr("x")).attr("dy", "1.2em").text(money(amountOf(d)));
   });
 
   function focusLinks(ls) {
@@ -327,13 +350,23 @@ function renderSankey() {
 
 function fundOrderOf(l) { return l.fund >= 0 ? fundOrder(l.fund) : 100 + Math.abs(l.fund); }
 
+// Labels show net amounts (what Open FI$Cal reports); band sizes can be
+// slightly larger because negative amounts can't be drawn.
+const amountOf = (d) => (d.net != null ? d.net : d.value);
+
 function nodeTip(d, g) {
-  const rows = [{ cls: "tt-value", text: money(d.value) }, { cls: "tt-name", text: d.name }];
-  const offset = d.targetLinks.find((l) => l.source.kind === "offset");
-  if (offset) rows.push({ cls: "tt-sub", text: `${money(d.value - offset.value)} after ${money(offset.value)} of cost recovery & offsets` });
-  if (d.kind === "dept") rows.push({ cls: "tt-sub", text: agencyName(prep.agencyOf[d.d]) });
-  if (d.kind === "offset") rows.push({ cls: "tt-sub", text: "Negative entries, mostly internal cost recovery (costs charged back to other programs), that offset this spending." });
-  else if (g.total) rows.push({ cls: "tt-sub", text: `${pct(d.value / g.total)} of the amount shown` });
+  const rows = [{ cls: "tt-value", text: money(amountOf(d)) }, { cls: "tt-name", text: d.name }];
+  if (d.kind === "dept") rows.push({ cls: "tt-sub", text: `${agencyName(prep.agencyOf[d.d])}, business unit ${doc.departments[d.d][0]}` });
+  if (d.kind === "type" && typeNote(d.t)) rows.push({ cls: "tt-sub", text: typeNote(d.t) });
+  if (d.kind === "offset") {
+    rows.push({ cls: "tt-sub", text: "Spending types with a net negative amount. They reduce net spending, so they're drawn flowing in:" });
+    for (const [t, v] of d.detail.slice(0, 5)) rows.push({ cls: "tt-sub", text: `${typeName(t)}: ${money(-v)}` });
+  } else if (g.netTotal && d.net != null && d.kind !== "type") {
+    rows.push({ cls: "tt-sub", text: `${pct(d.net / g.netTotal)} of ${money(g.netTotal)} net` });
+  }
+  if (d.net != null && d.kind !== "offset" && Math.abs(d.value - d.net) >= Math.max(1, Math.abs(d.net) * 0.005)) {
+    rows.push({ cls: "tt-sub", text: `Band drawn at ${money(d.value)}, because negative amounts can't be drawn.` });
+  }
   if (zoomTarget(d)) rows.push({ cls: "tt-sub", text: "Click to zoom in" });
   return rows;
 }
@@ -417,7 +450,7 @@ function renderText() {
   });
 
   const notes = [];
-  if (!doc.complete) notes.push(`${dash(doc.fiscalYear)} is still in progress: these figures run from July ${doc.beginYear} through ${doc.through}, and recent months may still change.`);
+  if (!doc.complete) notes.push(`${dash(doc.fiscalYear)} isn't complete: these figures cover July ${doc.beginYear} through ${doc.through}, and recent months can still change.`);
   const latest = index.years.find((y) => y.complete) || index.years[0];
   const me = index.years.find((y) => y.fiscalYear === doc.fiscalYear);
   if (me && latest && me.departments < latest.departments * 0.75) {
@@ -440,10 +473,12 @@ function renderText() {
         el("tbody", {}, rows.map((r) => el("tr", {}, el("td", { text: r[2] || "—" }), el("td", { text: r[1] }), el("td", { class: "num", text: money(r[3]) })))))));
   }
   const excluded = Math.abs(prep.excluded);
+  const updated = doc.source.filesUpdated ? new Date(doc.source.filesUpdated) : null;
+  const fmtDate = (dt) => dt.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
   below.append(el("p", { class: "small-note" },
-    `Source: Open FI$Cal monthly spending files, ${doc.totals.rows.toLocaleString("en-US")} transactions. `,
-    excluded >= 1 ? `Net-negative fund amounts left out of the drawing this year: ${money(excluded)}. ` : "",
-    `Processed ${new Date(doc.generatedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}.`));
+    `Source: Open FI$Cal monthly spending files${updated ? ` (last updated ${fmtDate(updated)})` : ""}, ${doc.totals.rows.toLocaleString("en-US")} transactions dated in ${dash(doc.fiscalYear)}. `,
+    excluded >= 1 ? `Net-negative fund amounts not drawn this year: ${money(excluded)}. ` : "",
+    `Processed ${fmtDate(new Date(doc.generatedAt))}.`));
 }
 
 // ---------------------------------------------------------------- state + routing
@@ -485,6 +520,13 @@ async function loadYear(fy, h = {}) {
   const frame = $("#sankey-frame");
   frame.style.opacity = doc ? "0.55" : "";
   doc = await loadJSON(DATA + entry.file);
+  if (doc.unit === "cents" && !doc._dollars) {
+    // Stored in cents so sums are exact; the charts work in dollars.
+    for (const fl of doc.flows) fl[3] /= 100;
+    for (const fd of doc.fundDetail) fd[3] /= 100;
+    doc.totals.net = doc.totals.netCents / 100;
+    doc._dollars = true;
+  }
   prep = prepare(doc);
   frame.style.opacity = "";
   $("#state-year").value = doc.fiscalYear;
@@ -507,7 +549,8 @@ export async function showState() {
     }
     const sel = $("#state-year");
     for (const y of index.years) {
-      sel.append(el("option", { value: y.fiscalYear }, `${dash(y.fiscalYear)}${y.complete ? "" : " (in progress)"}`));
+      const partial = y.complete ? "" : ` (through ${y.through})`;
+      sel.append(el("option", { value: y.fiscalYear }, `${dash(y.fiscalYear)}${partial}`));
     }
     sel.addEventListener("change", () => loadYear(sel.value, {}).then(() => writeHash(zoomToHash(), { replace: false })));
     $("#state-table-toggle").addEventListener("click", (e) => {

@@ -1,5 +1,6 @@
 """Offline tests for the data pipelines (no network). Run: python -m unittest discover tests"""
 import io
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -18,7 +19,7 @@ class StatePipelineTests(unittest.TestCase):
         self.assertEqual(sp.period_month(2025, 1), "July 2025")
         self.assertEqual(sp.period_month(2025, 6), "December 2025")
         self.assertEqual(sp.period_month(2025, 7), "January 2026")
-        self.assertEqual(sp.period_month(2025, 11), "May 2026")
+        self.assertEqual(sp.period_month(2025, 12), "June 2026")
 
     def test_to_milli_is_exact(self):
         self.assertEqual(sp.to_milli("-606.770"), -606770)
@@ -28,43 +29,75 @@ class StatePipelineTests(unittest.TestCase):
 
     def test_pointer_parsing(self):
         text = ('FileName,UploadDate,FileSize,Download\n'
-                '"Spending_FY25P11.csv","2026-08-01","1 GB","https://x.blob.core.windows.net/t/Spending_FY25P11.csv"\n'
-                '"Spending_FY16P01.csv","2026-08-01","148 MB","https://x.blob.core.windows.net/t/Spending_FY16P01.csv"\n'
+                '"Spending_FY25P11.csv","2026-08-01","1 GB","https://x/Spending_FY25P11.csv"\n'
                 '"README.txt","2026-08-01","1 KB","https://x/readme"\n')
-        files = sp.read_pointer(text)
-        self.assertEqual([(f["beginYear"], f["period"]) for f in files], [(2016, 1), (2025, 11)])
+        self.assertEqual([(f["fileYear"], f["period"]) for f in sp.read_pointer(text)], [(2025, 11)])
 
-    def test_plan(self):
-        pointer = [{"beginYear": y, "period": p} for y in (2021, 2022, 2023, 2024) for p in range(1, 13)]
-        pointer = [f for f in pointer if not (f["beginYear"] == 2024 and f["period"] > 5)]
-        existing = {2021: {"periods": list(range(1, 13))}, 2022: {"periods": list(range(1, 12))}}
-        self.assertEqual(sp.plan_years(pointer, existing, full=False), [2022, 2023, 2024])
-        self.assertEqual(sp.plan_years(pointer, existing, full=True), [2021, 2022, 2023, 2024])
+    def test_discovery_finds_unlisted_files(self):
+        exists = {sp.FILE_URL.format(yy=y % 100, pp=p) for y in (2016, 2025) for p in range(1, 13)}
+        exists |= {sp.FILE_URL.format(yy=26, pp=1), sp.FILE_URL.format(yy=26, pp=2)}
+        probe = lambda url: {"lastModified": "Sat, 07 Nov 2026 18:05:04 GMT", "size": 10} if url in exists else None  # noqa: E731
+        pointer = [{"file": "Spending_FY25P11.csv", "fileYear": 2025, "period": 11}]
+        found = sp.discover_files(pointer, probe=probe)
+        names = [f["file"] for f in found]
+        self.assertIn("Spending_FY25P12.csv", names)  # not listed, but exists
+        self.assertIn("Spending_FY26P02.csv", names)
+        self.assertNotIn("Spending_FY26P03.csv", names)
+        self.assertEqual(len(found), 26)
 
-    def test_aggregate_and_summary(self):
+    def test_plan_rereads_everything_when_anything_changes(self):
+        files = [{"file": f"Spending_FY{y % 100}P{p:02d}.csv", "fileYear": y, "period": p,
+                  "lastModified": "a", "size": 1} for y in (2023, 2024) for p in range(1, 13)]
+        index = {"schema": sp.SCHEMA, "sourceFiles": {f["file"]: ["a", 1] for f in files}}
+        self.assertEqual(sp.plan_years(files, index, full=False), [])
+        self.assertEqual(sp.plan_years(files, index, full=True), [2023, 2024])
+        files[3]["lastModified"] = "b"
+        self.assertEqual(sp.plan_years(files, index, full=False), [2023, 2024])
+        self.assertEqual(sp.plan_years(files[:3], {"schema": 1}, full=False), [2023])
+
+    def test_rows_are_assigned_to_their_own_fiscal_year(self):
         with open(FIXTURE, newline="") as fh:
-            agg = sp.aggregate_rows(fh)
-        self.assertEqual(agg["rows"], 8)
+            agg = sp.aggregate_rows(fh, file_year=2025)
+        self.assertEqual(agg["rows"], 10)
         self.assertEqual(agg["bad"], 0)
-        doc = sp.build_summary(2025, [({"file": "Spending_FY25P11.csv", "period": 11}, agg)])
+        self.assertEqual(agg["otherYear"], 1)
+        self.assertEqual(sorted(agg["years"]), [2024, 2025])
+        late = sp.build_summary(2024, agg["years"][2024], [])
+        self.assertEqual(late["totals"]["netCents"], 5635000)
+        self.assertEqual(late["periods"], [12])
+
+    def test_summary_is_exact_in_cents(self):
+        with open(FIXTURE, newline="") as fh:
+            agg = sp.aggregate_rows(fh, file_year=2025)
+        src = [{"file": "Spending_FY25P11.csv", "lastModified": "Sat, 07 Nov 2026 18:05:04 GMT"}]
+        doc = sp.build_summary(2025, agg["years"][2025], src)
         self.assertEqual(doc["fiscalYear"], "2025-26")
+        self.assertEqual(doc["unit"], "cents")
         self.assertFalse(doc["complete"])
         self.assertEqual(doc["through"], "May 2026")
-        # quoted agency name with commas survives intact
         self.assertIn("Legislative, Judicial, & Exec", doc["agencies"])
-        # net total = sum of all amounts, rounded to dollars
-        expected = 24.350 - 606.770 + 319.080 + 9435.000 + 20809.400 + 33243.430 - 36.050 + 1000.004
-        self.assertEqual(doc["totals"]["net"], round(expected))
-        # every flow points at valid dictionary entries
-        for f, d, t, v in doc["flows"]:
-            self.assertLess(f, len(doc["funds"]))
-            self.assertLess(d, len(doc["departments"]))
-            self.assertLess(t, len(doc["spendTypes"]))
-            self.assertIsInstance(v, int)
-        # the two Scholarshare rows (same fund/dept/type) are combined
-        sch = [i for i, dep in enumerate(doc["departments"]) if dep[1] == "Scholarshare Investment Board"]
-        self.assertEqual(len(sch), 1)
-        self.assertEqual(sum(v for _f, d, _t, v in doc["flows"] if d == sch[0]), round(319.080 + 1000.004))
+        expected_milli = 24350 - 606770 + 319080 + 9435000 + 20809400 + 33243430 - 36050 + 1000004 + 10005
+        self.assertEqual(doc["totals"]["netCents"], round(expected_milli / 10))
+        # per-flow cents can differ from the exact total by a fraction of a cent each
+        self.assertLessEqual(abs(sum(f[3] for f in doc["flows"]) - doc["totals"]["netCents"]), len(doc["flows"]))
+        self.assertIn(sp.FUND_MISSING, doc["funds"])
+        self.assertIn(sp.TYPE_MISSING, doc["spendTypes"])
+        # departments are keyed by business unit (one entry each)
+        bus = [d[0] for d in doc["departments"]]
+        self.assertEqual(len(bus), len(set(bus)))
+        sch = bus.index("0954")
+        self.assertEqual(sum(v for _f, d, _t, v in doc["flows"] if d == sch), round((319080 + 1000004) / 10))
+
+    def test_part_round_trip_and_merge(self):
+        with open(FIXTURE, newline="") as fh:
+            agg = sp.aggregate_rows(fh, file_year=2025)
+        doc = sp.part_to_json(2025, [], agg["years"], {"rows": 10})
+        back = sp.part_from_json(json.loads(json.dumps(doc)))
+        merged = {}
+        sp.merge_into(merged, back)
+        sp.merge_into(merged, back)
+        self.assertEqual(merged[2024]["rows"], 2)
+        self.assertEqual(sum(merged[2025]["flows"].values()), 2 * sum(agg["years"][2025]["flows"].values()))
 
     def test_missing_column_is_an_error(self):
         with self.assertRaises(ValueError):

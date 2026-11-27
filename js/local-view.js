@@ -76,30 +76,42 @@ function peers(sel) {
   return others.slice().sort((a, b) => Math.abs(Math.log(a.pop || 1) - lp) - Math.abs(Math.log(b.pop || 1) - lp)).slice(0, state.kind === "cities" ? 15 : 11);
 }
 
-function compareLabel(sel) {
-  const opt = COMPARE[state.kind].find(([k]) => k === state.cmp);
-  if (state.kind === "cities" && state.cmp === "county" && sel) return `cities in ${sel.county} County`;
-  if (state.kind === "counties" && state.cmp === "neighbors" && sel) return `${sel.name} County and its neighbors`;
-  return opt ? opt[1].toLowerCase() : "";
+/** Describes the comparison group without the selected place, e.g. "the 12 nearest cities". */
+function compareLabel(sel, set) {
+  const n = set.filter((r) => r.name !== sel?.name).length;
+  const plural = (one, many) => (n === 1 ? one : many);
+  if (!sel) return "";
+  if (state.kind === "cities") {
+    if (state.cmp === "county") return `the other ${n} ${plural("city", "cities")} in ${sel.county} County`;
+    if (state.cmp === "near") return `the ${n} nearest ${plural("city", "cities")}`;
+    return `the ${n} ${plural("city", "cities")} closest in population`;
+  }
+  if (state.cmp === "neighbors") return `the ${n} neighboring ${plural("county", "counties")}`;
+  if (state.cmp === "all") return `the other ${n} counties`;
+  return `the ${n} ${plural("county", "counties")} closest in population`;
 }
+
+const others = (sel, set) => set.filter((r) => r.name !== sel?.name);
+const placeName = (r) => (state.kind === "cities" ? r.name : `${r.name} County`);
 
 // ---------------------------------------------------------------- text
 function renderText(sel, set) {
   const fy = dash(doc.fiscalYear);
   if (!sel) {
     $("#local-headline").textContent = state.kind === "cities" ? "What does your city spend per resident?" : "What does your county spend per resident?";
-    $("#local-sub").textContent = `Pick a ${noun()} to see its spending on everyday services, and how that compares with its neighbors.`;
+    $("#local-sub").textContent = `Pick a ${noun()} to see its day-to-day spending on services, and how that compares with its neighbors.`;
     return;
   }
-  const label = state.kind === "cities" ? sel.name : `${sel.name} County`;
-  $("#local-headline").textContent = `${label} spent ${perRes(sel.per.total)} per resident on everyday services in ${fy}.`;
-  const med = median(set.map((r) => r.per.total));
-  const parts = [`Population ${count(sel.pop)}.`];
-  if (med != null && set.length > 2) {
-    parts.push(`The median for ${compareLabel(sel)} was ${perRes(med)} (${set.length} ${state.kind}).`);
-  }
+  $("#local-headline").textContent = `${placeName(sel)} spent ${perRes(sel.per.total)} per resident on day-to-day services in ${fy}.`;
+  const peersOnly = others(sel, set);
+  const med = median(peersOnly.map((r) => r.per.total));
+  const parts = [`Population ${count(sel.pop)}, as estimated in the same report.`];
+  if (med != null && peersOnly.length >= 2) parts.push(`The median for ${compareLabel(sel, set)} was ${perRes(med)}.`);
   if (sel.capital || sel.debt) {
-    parts.push(`Separately, ${perRes(sel.capital / sel.pop)} per resident went to capital projects and ${perRes(sel.debt / sel.pop)} to debt payments.`);
+    parts.push(`Not included above: ${perRes(sel.capital / sel.pop)} per resident on capital projects and ${perRes(sel.debt / sel.pop)} on debt service.`);
+  }
+  if (state.kind === "cities" && sel.name === "San Francisco") {
+    parts.push("San Francisco is a combined city and county, so its totals include services counties usually provide, such as jails, probation, public health and social services.");
   }
   $("#local-sub").textContent = parts.join(" ");
 }
@@ -177,20 +189,21 @@ function hbar({ host, data, valueKey, highlight, medianValue, onPick, rowH = 30,
 
 function renderProfile(sel, set) {
   const host = $("#profile-chart");
-  $("#profile-title").textContent = sel ? `${state.kind === "cities" ? sel.name : sel.name + " County"}: spending per resident` : "Spending per resident";
+  $("#profile-title").textContent = sel ? `${placeName(sel)}: spending per resident` : "Spending per resident";
   if (!sel) { host.replaceChildren(el("p", { class: "empty", text: `Choose a ${noun()} above.` })); $("#profile-sub").textContent = ""; return; }
-  $("#profile-sub").textContent = `By service area in ${dash(doc.fiscalYear)}. The black tick marks the median for ${compareLabel(sel)}. Click a row to compare it.`;
+  const peersOnly = others(sel, set);
+  $("#profile-sub").textContent = `By service area in ${dash(doc.fiscalYear)}. The black tick marks the median for ${compareLabel(sel, set)}. Click a row to compare it.`;
   const data = groups().map((g) => {
     const v = sel.per[g.key];
-    const tick = median(set.map((r) => r.per[g.key]));
+    const tick = peersOnly.length >= 2 ? median(peersOnly.map((r) => r.per[g.key])) : null;
     return {
       key: g.key, label: g.label, v, tick, self: g.key === state.s,
       tip: [{ cls: "tt-value", text: `${perRes(v)} per resident` }, { cls: "tt-name", text: g.label },
         { cls: "tt-sub", text: `${money(sel.values[g.key])} in total` },
-        { cls: "tt-sub", text: `Median for ${compareLabel(sel)}: ${perRes(tick)}` }],
+        { cls: "tt-sub", text: `Median for ${compareLabel(sel, set)}: ${perRes(tick)}` }],
     };
   });
-  hbar({ host, data, valueKey: (d) => d.v, highlight: (d) => d.key === state.s, onPick: (d) => set_({ s: d.key }), ticks: true, blue: true, rowH: 30, labelW: 236 });
+  hbar({ host, data, valueKey: (d) => d.v, highlight: (d) => d.key === state.s, onPick: (d) => set_({ s: d.key }), ticks: true, blue: true, rowH: 30, labelW: 258 });
 }
 
 let showAllRanks = false;
@@ -198,9 +211,9 @@ let showAllRanks = false;
 function renderRank(sel, set) {
   const host = $("#rank-chart");
   const svc = groupLabel(state.s);
-  $("#rank-title").textContent = `${svc}: compared with ${compareLabel(sel)}`;
-  if (!sel) { host.replaceChildren(); $("#rank-sub").textContent = ""; return; }
-  const med = median(set.map((r) => r.per[state.s]));
+  if (!sel) { host.replaceChildren(); $("#rank-sub").textContent = ""; $("#rank-title").textContent = svc; return; }
+  $("#rank-title").textContent = `${svc}: ${placeName(sel)} and ${compareLabel(sel, set)}`;
+  const med = median(others(sel, set).map((r) => r.per[state.s]));
   const ranked = set.filter((r) => r.per[state.s] != null).sort((a, b) => b.per[state.s] - a.per[state.s]);
   const me = ranked.findIndex((r) => r.name === sel.name);
   const LIMIT = 21;
@@ -209,13 +222,12 @@ function renderRank(sel, set) {
     const start = Math.max(0, Math.min(ranked.length - LIMIT, me - Math.floor(LIMIT / 2)));
     shown = ranked.slice(start, start + LIMIT);
   }
-  const rankNote = shown.length < ranked.length
-    ? ` Showing the ${shown.length} closest in rank to ${sel.name} (${ordinal(me + 1)} of ${ranked.length}).`
-    : ranked.length > 2 ? ` ${state.kind === "cities" ? sel.name : sel.name + " County"} ranks ${ordinal(me + 1)} of ${ranked.length}.` : "";
-  $("#rank-sub").textContent = `Per resident, ${dash(doc.fiscalYear)}. The thin line is the median (${perRes(med)}).${rankNote} Click a bar to switch to that ${noun()}.`;
+  const position = me >= 0 && ranked.length > 2 ? ` ${placeName(sel)} is ${ordinal(me + 1)} highest of these ${ranked.length}.` : "";
+  const windowNote = shown.length < ranked.length ? ` Showing the ${shown.length} closest in rank.` : "";
+  $("#rank-sub").textContent = `Per resident, ${dash(doc.fiscalYear)}. The thin line is the median for ${compareLabel(sel, set)} (${perRes(med)}).${position}${windowNote} Click a bar to switch to that ${noun()}.`;
   const data = shown.map((r) => ({
     name: r.name, label: r.name, v: r.per[state.s], self: r.name === sel.name,
-    tip: [{ cls: "tt-value", text: `${perRes(r.per[state.s])} per resident` }, { cls: "tt-name", text: state.kind === "cities" ? r.name : `${r.name} County` },
+    tip: [{ cls: "tt-value", text: `${perRes(r.per[state.s])} per resident` }, { cls: "tt-name", text: placeName(r) },
       { cls: "tt-sub", text: `${money(r.values[state.s] ?? r.total)} total, population ${count(r.pop)}` }],
   }));
   // Keep the scale readable when a few places with tiny populations are extreme.
@@ -230,6 +242,9 @@ function renderRank(sel, set) {
   if (data.some((d) => d.v > clipAt)) host.append(el("p", { class: "small-note", text: "Bars marked with a break run past the end of the scale; their full amount is printed beside them." }));
   if (state.kind === "cities" && state.cmp === "county" && set.length <= 2) {
     host.append(el("p", { class: "small-note", text: `${sel.county} County has only ${set.length} ${set.length === 1 ? "city" : "cities"}; try “Nearest cities” for a wider comparison.` }));
+  }
+  if (state.kind === "cities" && set.some((r) => r.name === "San Francisco") && sel.name !== "San Francisco") {
+    host.append(el("p", { class: "small-note", text: "San Francisco is a combined city and county, so its amounts include county services." }));
   }
 }
 
@@ -313,10 +328,15 @@ function renderMap(sel, set) {
   const q = scale.quantiles();
   legend.append(el("span", { text: "Per resident:" }),
     el("span", { class: "steps", "aria-hidden": "true" }, seqColors().map((c) => el("span", { style: `background:${c}` }))),
-    el("span", { text: q.length ? `five equal-count groups, split at ${q.map(perRes).join(", ")}` : "" }));
+    el("span", { text: q.length ? `five equal-count groups, split at ${q.map(perRes).join(", ")}` : "" }),
+    el("span", { class: "steps", "aria-hidden": "true" }, el("span", { style: `background:${state.kind === "counties" ? cssVar("--raised") : cssVar("--hair")};width:14px;box-shadow:0 0 0 1px ${cssVar("--base")} inset` })),
+    el("span", { text: "none reported" }));
 }
 
 function entityTip(r, fallbackName) {
+  if (!r && fallbackName === "San Francisco") {
+    return [{ cls: "tt-name", text: "San Francisco" }, { cls: "tt-sub", text: "A combined city and county; it reports to the State Controller as a city. Switch to Cities to see it." }];
+  }
   if (!r) return [{ cls: "tt-name", text: fallbackName ? `${fallbackName} County` : "" }, { cls: "tt-sub", text: "No report for this year" }];
   const v = r.per[state.s];
   return [{ cls: "tt-value", text: `${perRes(v)} per resident` },
@@ -328,7 +348,7 @@ function renderLines(sel) {
   const host = $("#lines-table");
   host.replaceChildren();
   if (!sel) { $("#lines-sub").textContent = ""; return; }
-  $("#lines-sub").textContent = `The State Controller's report lines behind each service area for ${state.kind === "cities" ? sel.name : sel.name + " County"}, ${dash(doc.fiscalYear)}.`;
+  $("#lines-sub").textContent = `The State Controller's report lines behind each service area for ${placeName(sel)}, ${dash(doc.fiscalYear)}.`;
   const lines = sel.lines.map(([li, v]) => ({ group: doc.lines[li][0], line: doc.lines[li][1], v }));
   const order = new Map(groups().map((g, i) => [g.key, i]));
   lines.sort((a, b) => (a.group === state.s ? -1 : 0) - (b.group === state.s ? -1 : 0) || order.get(a.group) - order.get(b.group) || b.v - a.v);
@@ -376,6 +396,17 @@ function syncControls() {
   cs.value = state.cmp;
 }
 
+function renderSource() {
+  let note = $("#local-source");
+  if (!note) {
+    note = el("p", { class: "small-note", id: "local-source" });
+    document.querySelector(".local-grid").after(note);
+  }
+  const src = index[state.kind].source || {};
+  const updated = src.updatedAt ? new Date(src.updatedAt + "T12:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }) : null;
+  note.textContent = `Source: ${src.name || "State Controller's Office"} (${src.publisher || "By the Numbers"})${updated ? `, dataset updated ${updated}` : ""}. Figures are as each government reported them.`;
+}
+
 function render() {
   const sel = selected();
   const set = peers(sel);
@@ -385,6 +416,7 @@ function render() {
   renderMap(sel, set);
   renderRank(sel, set);
   renderLines(sel);
+  renderSource();
   writeHash({ view: "local", kind: state.kind, fy: state.fy, e: state.e, s: state.s, cmp: state.cmp });
 }
 

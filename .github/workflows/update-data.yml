@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       full_rebuild:
-        description: "Re-read every fiscal year of state data (slow, ~110 GB of CSV)"
+        description: "Re-read all state files even if none changed (~120 GB of CSV, ~10 minutes)"
         type: boolean
         default: false
   push:
@@ -37,7 +37,7 @@ jobs:
           python-version: "3.12"
       - name: Run offline tests
         run: python -m unittest discover tests
-      - name: Decide which state fiscal years to read
+      - name: Find Open FI$Cal files and check for changes
         id: plan
         run: python scripts/state_pipeline.py plan ${{ inputs.full_rebuild && '--full' || '' }} >> "$GITHUB_OUTPUT"
 
@@ -81,6 +81,10 @@ jobs:
           path: out/state
           merge-multiple: true
       - name: Update state summaries
+        # Only replaces the state data if every planned file-year came back.
+        if: needs.state.result == 'success'
+        env:
+          EXPECTED_YEARS: ${{ needs.plan.outputs.years }}
         run: python scripts/state_pipeline.py index --incoming out/state
       - name: Update city and county data
         run: python scripts/local_pipeline.py all

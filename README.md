@@ -19,18 +19,28 @@ An interactive look at public spending in California, built from official open d
 
 ### What the numbers mean
 
-- **Coverage.** Open FI$Cal covers about 79% of state budgetary expenditures (151 departments, 188 business units). It is published with a lag of at least 60 days, and adjustments can still be posted to a month after it ends. Earlier fiscal years include fewer departments because departments joined FI$Cal over time. The site flags those years.
-- **State amounts are net.** Refunds, reversals and internal cost recovery reduce the totals. The Sankey can't draw a negative band, so where a fund's net amount for a department is negative it's left out, and the amount left out is shown under the chart. Inside department views, negative spending-type entries appear as a grey "Cost recovery & offsets" source, so the bands still add up.
-- **City and county amounts** are governmental-fund current expenditures (day-to-day services). City-run enterprises (water, electric, airports, hospitals…) are left out, and capital outlay and debt service are reported separately. Figures appear as each local government reported them to the State Controller. Per-resident values use the population estimate from the same report.
-- **Service areas** group the Controller's report lines. The mapping is defined in [`scripts/local_pipeline.py`](scripts/local_pipeline.py) (`CITY_GROUPS`, `COUNTY_GROUPS`), and the site lists the lines behind each total for the selected place.
+- **Coverage.** Open FI$Cal covers about 79% of state budgetary expenditures (151 departments, 188 business units). Some large departments, including Caltrans, the DMV and the Department of Corrections and Rehabilitation, aren't in it. It is published with a lag of at least 60 days, and adjustments can still be posted to a month after it ends. Earlier fiscal years include fewer departments because departments joined FI$Cal over time. The site flags those years.
+- **How state totals are computed.**
+  - **All files are read.** The pipeline reads every monthly file Open FI$Cal has posted. It finds them by name, because the published download list can lag behind: in November 2026 it stopped at May 2026, while June to August 2026 were already posted.
+  - **Each transaction counts in its own year.** Transactions go to the fiscal year and period recorded on them, not to the file they came in, because a monthly file can contain a few transactions from another fiscal year.
+  - **Exact sums.** Amounts are added exactly and stored in cents.
+- **State amounts are net.** Refunds, reversals and negative entries such as internal cost recovery reduce the totals, and labels show net amounts. The Sankey can't draw a negative band, so where a fund's net amount for a department is negative it's left out of the drawing, and the amount left out is shown under the chart. In agency and department views, spending types with a net negative amount appear as a grey "Negative entries" band flowing in, drawn at their exact total.
+- **Spending types** are the state's account categories (`account_type_1`). Their descriptions on the site are based on the [State Administrative Manual, section 7670](https://www.dgs.ca.gov/Resources/SAM/TOC/7600/7670).
+- **City and county amounts.**
+  - **What's counted.** These are governmental-fund current expenditures, meaning day-to-day services. City-run enterprises (water, electric, airports, hospitals…) are left out, and capital outlay and debt service are reported separately.
+  - **Source and population.** Figures appear as each local government reported them to the State Controller. Per-resident values use the population estimate in the same report.
+  - **Comparison medians** leave out the place being compared.
+  - **Years shown.** Only years that use the Controller's current report layout are shown (cities from 2017-18, counties from 2016-17).
+  - **San Francisco** is a combined city and county that reports as a city, so its city figures include county services.
+- **Service areas** group the Controller's report lines under the Controller's own section names. The mapping is defined in [`scripts/local_pipeline.py`](scripts/local_pipeline.py) (`CITY_GROUPS`, `COUNTY_GROUPS`), and the site lists the lines behind each total for the selected place.
 
 ## How it updates
 
 [`.github/workflows/update-data.yml`](.github/workflows/update-data.yml) runs on the 9th of every month, whenever the pipeline scripts change, and on demand from the Actions tab.
 
-1. **plan.** Runs the offline tests, then reads Open FI$Cal's file list and decides which fiscal years to re-read: always the newest two (late adjustments), plus any year that is missing or incomplete. Choose *full rebuild* on a manual run to re-read everything.
-2. **state.** One job per fiscal year streams that year's monthly CSV files (up to ~1 GB each) and adds them up by fund group, department and spending type. Nothing is stored except the totals.
-3. **publish.** Writes `data/state/fy*.json`, refreshes city and county data from the State Controller's API (server-side sums, last 10 years), and commits any changes.
+1. **plan.** Runs the offline tests. It then finds every Open FI$Cal monthly file, checking the published list and probing the file names, and compares each file's date and size with the last run. If nothing changed, the state step is skipped. If anything changed, every file is read again, because a file can hold other years' transactions. Choose *full rebuild* on a manual run to force a read.
+2. **state.** One job per file-year streams that year's monthly CSV files (up to ~1 GB each) and adds them up by each transaction's own fiscal year, fund group, department and spending type.
+3. **publish.** Merges the partial results. If any file-year failed, it keeps the previous state data rather than publish a partial total. It writes `data/state/fy*.json`, refreshes city and county data from the State Controller's API (server-side sums, last 10 years) and commits any changes.
 
 Everything is plain Python standard library. There are no dependencies to install.
 

@@ -3,8 +3,6 @@ name: Update data
 # Runs once a month, on demand (Actions tab → "Update data" → Run workflow),
 # and whenever the pipeline scripts change.
 on:
-  schedule:
-    - cron: "41 19 9 * *" # 9th of every month, 19:41 UTC
   workflow_dispatch:
     inputs:
       full_rebuild:

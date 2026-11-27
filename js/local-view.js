@@ -80,7 +80,7 @@ function peers(sel) {
 function compareLabel(sel, set) {
   const n = set.filter((r) => r.name !== sel?.name).length;
   const plural = (one, many) => (n === 1 ? one : many);
-  if (!sel) return "";
+  if (!sel || n === 0) return "";
   if (state.kind === "cities") {
     if (state.cmp === "county") return `the other ${n} ${plural("city", "cities")} in ${sel.county} County`;
     if (state.cmp === "near") return `the ${n} nearest ${plural("city", "cities")}`;
@@ -192,7 +192,9 @@ function renderProfile(sel, set) {
   $("#profile-title").textContent = sel ? `${placeName(sel)}: spending per resident` : "Spending per resident";
   if (!sel) { host.replaceChildren(el("p", { class: "empty", text: `Choose a ${noun()} above.` })); $("#profile-sub").textContent = ""; return; }
   const peersOnly = others(sel, set);
-  $("#profile-sub").textContent = `By service area in ${dash(doc.fiscalYear)}. The black tick marks the median for ${compareLabel(sel, set)}. Click a row to compare it.`;
+  $("#profile-sub").textContent = peersOnly.length >= 2
+    ? `By service area in ${dash(doc.fiscalYear)}. The black tick marks the median for ${compareLabel(sel, set)}. Click a row to compare it.`
+    : `By service area in ${dash(doc.fiscalYear)}. This comparison group has too few other places for a median; choose another under “Compare with”. Click a row to compare it.`;
   const data = groups().map((g) => {
     const v = sel.per[g.key];
     const tick = peersOnly.length >= 2 ? median(peersOnly.map((r) => r.per[g.key])) : null;
@@ -212,7 +214,8 @@ function renderRank(sel, set) {
   const host = $("#rank-chart");
   const svc = groupLabel(state.s);
   if (!sel) { host.replaceChildren(); $("#rank-sub").textContent = ""; $("#rank-title").textContent = svc; return; }
-  $("#rank-title").textContent = `${svc}: ${placeName(sel)} and ${compareLabel(sel, set)}`;
+  const groupText = compareLabel(sel, set);
+  $("#rank-title").textContent = groupText ? `${svc}: ${placeName(sel)} and ${groupText}` : `${svc}: ${placeName(sel)}`;
   const med = median(others(sel, set).map((r) => r.per[state.s]));
   const ranked = set.filter((r) => r.per[state.s] != null).sort((a, b) => b.per[state.s] - a.per[state.s]);
   const me = ranked.findIndex((r) => r.name === sel.name);
@@ -224,7 +227,8 @@ function renderRank(sel, set) {
   }
   const position = me >= 0 && ranked.length > 2 ? ` ${placeName(sel)} is ${ordinal(me + 1)} highest of these ${ranked.length}.` : "";
   const windowNote = shown.length < ranked.length ? ` Showing the ${shown.length} closest in rank.` : "";
-  $("#rank-sub").textContent = `Per resident, ${dash(doc.fiscalYear)}. The thin line is the median for ${compareLabel(sel, set)} (${perRes(med)}).${position}${windowNote} Click a bar to switch to that ${noun()}.`;
+  const medText = med != null && others(sel, set).length >= 2 ? ` The thin line is the median for ${groupText} (${perRes(med)}).` : "";
+  $("#rank-sub").textContent = `Per resident, ${dash(doc.fiscalYear)}.${medText}${position}${windowNote}${ranked.length > 1 ? ` Click a bar to switch to that ${noun()}.` : ""}`;
   const data = shown.map((r) => ({
     name: r.name, label: r.name, v: r.per[state.s], self: r.name === sel.name,
     tip: [{ cls: "tt-value", text: `${perRes(r.per[state.s])} per resident` }, { cls: "tt-name", text: placeName(r) },
@@ -234,7 +238,7 @@ function renderRank(sel, set) {
   const vals = ranked.map((r) => r.per[state.s]);
   const q90 = d3.quantile(vals.slice().sort((a, b) => a - b), 0.9) || 0;
   const clipAt = Math.max(q90 * 1.4, (sel.per[state.s] || 0) * 1.25, (med || 0) * 2.5);
-  hbar({ host, data, valueKey: (d) => d.v, highlight: (d) => d.self, medianValue: med, onPick: (d) => set_({ e: d.name }), rowH: 26, labelW: 170, clipAt });
+  hbar({ host, data, valueKey: (d) => d.v, highlight: (d) => d.self, medianValue: others(sel, set).length >= 2 ? med : null, onPick: (d) => set_({ e: d.name }), rowH: 26, labelW: 170, clipAt });
   if (ranked.length > LIMIT) {
     host.append(el("button", { type: "button", class: "ghost small", onclick: () => { showAllRanks = !showAllRanks; renderRank(sel, set); } },
       showAllRanks ? `Show the ${LIMIT} closest in rank` : `Show all ${ranked.length}`));
@@ -475,6 +479,8 @@ export async function showLocal() {
     s: h.s || "total", cmp: h.cmp || COMPARE[kind][0][0],
   };
   await load();
+  const sel0 = selected();
+  if (!h.cmp && kind === "cities" && sel0 && rows.filter((r) => r.county === sel0.county).length < 4) state.cmp = "near";
   syncControls();
   render();
 }

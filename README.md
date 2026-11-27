@@ -24,6 +24,7 @@ An interactive look at public spending in California, built from official open d
   - **All files are read.** The pipeline reads every monthly file Open FI$Cal has posted. It finds them by name, because the published download list can lag behind: in November 2026 it stopped at May 2026, while June to August 2026 were already posted.
   - **Each transaction counts in its own year.** Transactions go to the fiscal year and period recorded on them, not to the file they came in, because a monthly file can contain a few transactions from another fiscal year.
   - **Exact sums.** Amounts are added exactly and stored in cents.
+  - **Reconciliation.** These totals were checked against Open FI$Cal's own report (see "Reconciliation" below).
 - **State amounts are net.** Refunds, reversals and negative entries such as internal cost recovery reduce the totals, and labels show net amounts. The Sankey can't draw a negative band, so where a fund's net amount for a department is negative it's left out of the drawing, and the amount left out is shown under the chart. In agency and department views, spending types with a net negative amount appear as a grey "Negative entries" band flowing in, drawn at their exact total.
 - **Spending types** are the state's account categories (`account_type_1`). Their descriptions on the site are based on the [State Administrative Manual, section 7670](https://www.dgs.ca.gov/Resources/SAM/TOC/7600/7670).
 - **City and county amounts.**
@@ -43,6 +44,30 @@ An interactive look at public spending in California, built from official open d
 3. **publish.** Merges the partial results. If any file-year failed, it keeps the previous state data rather than publish a partial total. It writes `data/state/fy*.json`, refreshes city and county data from the State Controller's API (server-side sums, last 10 years) and commits any changes.
 
 Everything is plain Python standard library. There are no dependencies to install.
+
+## Reconciliation
+
+On 26 November 2026, `data/state/` was compared with the *Spending Annual Summary* page of Open FI$Cal's Power BI report ("Explore Expenditures"; fiscal years by begin year, broken down by agency).
+
+| Fiscal year | Open FI$Cal report | This site | Difference |
+| --- | ---: | ---: | ---: |
+| 2016-17 | $2,123,073,255 | $2,123,073,255 | — |
+| 2017-18 | $6,093,308,241 | $6,096,782,501 | +$3,474,260 (0.057%) |
+| 2018-19 | $28,924,718,943 | $28,915,535,817 | −$9,183,126 (0.032%) |
+| 2019-20 | $315,236,513,033 | $315,228,035,045 | −$8,477,988 (0.003%) |
+| 2020-21 | $490,734,741,390 | $490,748,928,244 | +$14,186,854 (0.003%) |
+| 2021-22 | $393,631,637,906 | $393,631,637,906 | — |
+| 2022-23 | $394,755,361,519 | $394,755,305,169 | −$56,350 (<0.001%) |
+| 2023-24 | $441,451,331,437 | $441,451,387,787 | +$56,350 (<0.001%) |
+| 2024-25 | $472,370,401,802 | $472,370,401,802 | — |
+| 2025-26 | $499,562,795,926 | $499,562,795,926 | — |
+| 2026-27 | $60,073,751,295 | $60,073,751,295 | — |
+
+- **Matches.** Five of eleven years match to the dollar, for every agency.
+- **The other six.** The report assigns a few period-12 (year-end) entries to the fiscal year of their *accounting date*. This site uses the fiscal year recorded on each transaction (`fiscal_year_begin`), which is also how Open FI$Cal groups its monthly files. A diagnostic run confirmed this explains every difference, down to the dollar. For example, $3,474,260 of 2017-18 Natural Resources entries are dated in fiscal 2018-19, and $22,364,249 of 2020-21 Labor & Workforce Development entries are dated in fiscal 2019-20.
+- **Effect on the site.** At the precision the site displays, the two agree.
+
+City figures were spot-checked against direct queries of the State Controller's API. For example, Pasadena's 2024-25 police spending is $112,027,030 for 140,631 residents, or $797 per resident.
 
 ## Repository layout
 
